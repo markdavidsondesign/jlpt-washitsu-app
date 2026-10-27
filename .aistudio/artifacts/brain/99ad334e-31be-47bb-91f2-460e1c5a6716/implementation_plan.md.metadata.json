@@ -1,0 +1,6 @@
+{
+  "summary": "Implementation plan for expanding the JLPT study app with merged N5 and N4 vocabulary lists, frequency and grammar category priority ranking, 20-30 word daily SRS batch sessions, segmented level filter controls (All, N4 Only, N5 Review), adaptive card layouts, and resilient CSV/JSON fallback handling.",
+  "updatedAt": "2026-10-19T03:50:08.390379443Z",
+  "requestFeedback": true,
+  "userFacing": true
+}

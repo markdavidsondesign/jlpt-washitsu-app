@@ -1,0 +1,8 @@
+{
+  "name": "JLPT N4 Kanji SRS Flashcards",
+  "description": "Interactive JLPT N4 & N5 study web application with Leitner spaced repetition, frequency-ranked vocabulary, audio pronunciation, and daily study batches.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
