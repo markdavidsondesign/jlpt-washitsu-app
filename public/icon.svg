@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Subtle gradient for rich washi paper depth -->
+    <linearGradient id="matchaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#768B68" />
+      <stop offset="50%" stop-color="#6B7F5E" />
+      <stop offset="100%" stop-color="#5E7051" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F2D879" />
+      <stop offset="50%" stop-color="#D4AF37" />
+      <stop offset="100%" stop-color="#AA8820" />
+    </linearGradient>
+    <linearGradient id="stampGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D6583E" />
+      <stop offset="100%" stop-color="#BA3F25" />
+    </linearGradient>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#242B1E" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- Solid Matcha Green background with rounded Japanese washitsu border aesthetics -->
+  <rect width="512" height="512" rx="112" fill="url(#matchaGrad)" />
+
+  <!-- Outer Washitsu tatami border -->
+  <rect x="22" y="22" width="468" height="468" rx="94" fill="none" stroke="url(#goldGrad)" stroke-width="4.5" stroke-opacity="0.75" />
+
+  <!-- Inner delicate washi frame line -->
+  <rect x="34" y="34" width="444" height="444" rx="84" fill="none" stroke="#F9F6F0" stroke-width="1.75" stroke-opacity="0.3" stroke-dasharray="12 8" />
+
+  <!-- Four traditional corner accents (L-shaped gold brackets) -->
+  <path d="M 50 78 L 50 50 L 78 50" fill="none" stroke="url(#goldGrad)" stroke-width="3" stroke-linecap="round" />
+  <path d="M 462 78 L 462 50 L 434 50" fill="none" stroke="url(#goldGrad)" stroke-width="3" stroke-linecap="round" />
+  <path d="M 50 434 L 50 462 L 78 462" fill="none" stroke="url(#goldGrad)" stroke-width="3" stroke-linecap="round" />
+  <path d="M 462 434 L 462 462 L 434 462" fill="none" stroke="url(#goldGrad)" stroke-width="3" stroke-linecap="round" />
+
+  <!-- Subtle concentric Gold Ring framing the central kanji -->
+  <circle cx="256" cy="256" r="172" fill="none" stroke="url(#goldGrad)" stroke-width="4" stroke-opacity="0.55" stroke-dasharray="9 6" />
+  <circle cx="256" cy="256" r="160" fill="none" stroke="url(#goldGrad)" stroke-width="2" stroke-opacity="0.4" />
+
+  <!-- Emblem: Centered Japanese Kanji 「学」 in soft Cream (#F9F6F0) with drop shadow -->
+  <g filter="url(#softShadow)">
+    <text x="256" y="342" font-family="'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif" font-size="260" font-weight="900" text-anchor="middle" fill="#F9F6F0" letter-spacing="-0.02em">学</text>
+  </g>
+
+  <!-- Vermilion Red (#C84B31) Japanese Hanko Accent Stamp in lower right -->
+  <g transform="translate(340, 340)">
+    <rect width="82" height="82" rx="18" fill="url(#stampGrad)" stroke="#F2D1CA" stroke-width="2.5" stroke-opacity="0.85" filter="url(#softShadow)" />
+    <!-- Inner stamp border ring -->
+    <rect x="6" y="6" width="70" height="70" rx="14" fill="none" stroke="#F9F6F0" stroke-width="1.5" stroke-opacity="0.6" stroke-dasharray="4 3" />
+    <!-- Stamp text: N4 / 和 -->
+    <text x="41" y="52" font-family="'Noto Sans JP', 'Plus Jakarta Sans', sans-serif" font-size="34" font-weight="900" text-anchor="middle" fill="#F9F6F0" letter-spacing="0.05em">N4</text>
+  </g>
+</svg>

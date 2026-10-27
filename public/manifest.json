@@ -1,0 +1,44 @@
+{
+  "id": "/",
+  "name": "JLPT Washitsu Study",
+  "short_name": "JLPT N4/N5",
+  "description": "Interactive JLPT N4 & N5 study web application with Leitner spaced repetition, frequency-ranked vocabulary, audio pronunciation, and daily study batches.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#6B7F5E",
+  "background_color": "#F4F0EA",
+  "orientation": "portrait-primary",
+  "categories": ["education", "language"],
+  "icons": [
+    {
+      "src": "/icon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

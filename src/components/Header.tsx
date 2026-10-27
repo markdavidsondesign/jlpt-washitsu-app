@@ -2,6 +2,7 @@ import React from 'react';
 import { RotateCcw, Sun, Moon, BookOpen, CheckCircle2, BookMarked, RefreshCw, Gamepad2 } from 'lucide-react';
 import { SRSStats } from '../utils/srs';
 import { StudyMode } from '../data/vocabTypes';
+import { PWAInstallButton } from './PWAInstallButton';
 
 export type AppPrimaryMode = 'learn' | 'review' | 'quiz';
 
@@ -148,9 +149,12 @@ export const Header: React.FC<HeaderProps> = ({
     </div>
   );
 
-  // Reusable Action Icons (Deck browse, Theme toggle, Reset)
+  // Reusable Action Icons (Install App, Deck browse, Theme toggle, Reset)
   const ActionIcons = (
     <div className="flex items-center gap-1 xs:gap-1.5 shrink-0">
+      {/* PWA Install Button (Suppresses in standalone mode) */}
+      <PWAInstallButton />
+
       {/* Deck Browse */}
       <button
         onClick={onToggleDeckList}

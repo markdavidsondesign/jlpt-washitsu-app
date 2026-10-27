@@ -166,4 +166,29 @@ Expand the JLPT study platform from single kanji flashcards into a comprehensive
   - Automatically loads the next 5-word set ONLY when `roundMatchedCount === 5`.
   - 5 rounds of 5 words (25 total words) complete the session and launch the Washitsu completion summary.
 
+---
+
+## 8. Custom PWA App Icon, iOS Web App Meta & Web Application Manifest
+
+- **App Icon Assets**:
+  - Background: Solid Matcha Green (`#6B7F5E`) with rounded Japanese washitsu border aesthetics (`rx="112"`).
+  - Emblem: Centered Japanese Kanji 「学」 in soft Cream (`#F9F6F0`) framed by a subtle gold ring (`#D4AF37`) and traditional tatami corner brackets.
+  - Accent Stamp: Vermilion Red (`#C84B31`) Japanese hanko seal stamp in the lower-right corner labeled 「N4」.
+  - Deployed assets: `/public/apple-touch-icon.png` (180x180), `/public/icon-512.png` (512x512 maskable & any), `/public/icon-192.png` (192x192), `/public/icon-32x32.png` (valid 32x32 RGBA PNG), and `/public/icon.svg`.
+- **HTML Head & iOS Meta Configuration (`index.html`)**:
+  - `<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">`
+  - `<link rel="icon" type="image/png" sizes="32x32" href="/icon-32x32.png">`
+  - `<meta name="apple-mobile-web-app-capable" content="yes">`
+  - `<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">`
+  - `<meta name="apple-mobile-web-app-title" content="JLPT Study">`
+  - `<meta name="theme-color" content="#6B7F5E">`
+  - `<link rel="manifest" href="/manifest.json">`
+- **Web App Manifest (`/public/manifest.json` & `/public/site.webmanifest`)**:
+  - Configured with `"name": "JLPT Washitsu Study"`, `"short_name": "JLPT N4/N5"`, `"theme_color": "#6B7F5E"`, `"background_color": "#F4F0EA"`, and `"display": "standalone"`.
+- **In-App Install UI (`PWAInstallButton`)**:
+  - Automatically suppresses itself when running in standalone mode.
+  - Triggers native installation prompt on Chromium/Android/Desktop.
+  - Provides guided 3-step instructions for iOS Safari users.
+
+
 
