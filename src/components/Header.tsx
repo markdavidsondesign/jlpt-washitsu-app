@@ -192,7 +192,10 @@ export const Header: React.FC<HeaderProps> = ({
   );
 
   return (
-    <header className="w-full max-w-full flex-shrink-0 z-30 bg-[#FAF8F5]/95 dark:bg-[#28231F]/95 backdrop-blur-md border-b border-[#DED7CD] dark:border-[#38312B] transition-colors py-1.5 px-3 xs:py-0 xs:px-4 xs:h-12 box-border">
+    <header
+      className="w-full max-w-full flex-shrink-0 z-30 bg-[#FAF8F5]/95 dark:bg-[#28231F]/95 backdrop-blur-md border-b border-[#DED7CD] dark:border-[#38312B] transition-colors py-1.5 px-3 xs:py-1 xs:px-4 box-border"
+      style={{ paddingTop: 'env(safe-area-inset-top, 16px)' }}
+    >
       {/* =========================================================================
           RESPONSIVE MOBILE LAYOUT (< 480px / max-xs)
           Two compact rows to eliminate horizontal header overflow:

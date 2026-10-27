@@ -20,6 +20,10 @@ import {
   mergeProgressWithDeck,
   getNextQueue,
   SRS_STORAGE_KEY,
+  ACTIVE_SESSION_STORAGE_KEY,
+  saveActiveSession,
+  loadActiveSession,
+  clearActiveSession,
 } from './utils/srs';
 import { Header, AppPrimaryMode } from './components/Header';
 import { KanjiCard, KanjiCardRef } from './components/KanjiCard';
@@ -58,12 +62,26 @@ export default function App() {
   const [, setIsLoadingDeck] = useState<boolean>(true);
   const [syncStatusMessage, setSyncStatusMessage] = useState<string>('Syncing JLPT N5 + N4...');
 
+  // Active saved session state for mid-session persistence across browser tabs and views
+  const savedSession = useRef<ReturnType<typeof loadActiveSession>>(loadActiveSession()).current;
+
   // Navigation mode states: Primary Mode ('learn' | 'review') and Level Filter ('all' | 'n4' | 'n5')
-  const [primaryMode, setPrimaryMode] = useState<AppPrimaryMode>('learn');
-  const [studyMode, setStudyMode] = useState<StudyMode>('all');
+  const [primaryMode, setPrimaryMode] = useState<AppPrimaryMode>(() => {
+    if (savedSession?.primaryMode && (savedSession.primaryMode === 'learn' || savedSession.primaryMode === 'review')) {
+      return savedSession.primaryMode;
+    }
+    return 'learn';
+  });
+  const [studyMode, setStudyMode] = useState<StudyMode>(() => {
+    if (savedSession?.studyMode) return savedSession.studyMode;
+    return 'all';
+  });
 
   // Daily batch index for Learn Mode (0 = batch 1, 1 = batch 2, etc.)
-  const [batchIndex, setBatchIndex] = useState<number>(0);
+  const [batchIndex, setBatchIndex] = useState<number>(() => {
+    if (typeof savedSession?.batchIndex === 'number') return savedSession.batchIndex;
+    return 0;
+  });
 
   // Card flip state
   const [isFlipped, setIsFlipped] = useState<boolean>(false);
@@ -119,23 +137,61 @@ export default function App() {
   // =========================================================================
   // Learn Mode State:
   const [learnQueue, setLearnQueue] = useState<string[]>(() => {
+    if (savedSession && savedSession.primaryMode === 'learn' && savedSession.queueCardIds?.length > 0) {
+      return savedSession.queueCardIds;
+    }
     const initialCards = rankAndEnrichVocab(FALLBACK_VOCAB_DATA);
     return getBatchQueue(initialCards, progressMap, BATCH_SIZE, 0);
   });
   const [learnActiveBatchIds, setLearnActiveBatchIds] = useState<string[]>(() => {
+    if (savedSession && savedSession.primaryMode === 'learn' && savedSession.activeBatchIds?.length > 0) {
+      return savedSession.activeBatchIds;
+    }
     const initialCards = rankAndEnrichVocab(FALLBACK_VOCAB_DATA);
     return getBatchQueue(initialCards, progressMap, BATCH_SIZE, 0);
   });
-  const [learnMasteredIds, setLearnMasteredIds] = useState<Set<string>>(new Set());
-  const [learnMissedIds, setLearnMissedIds] = useState<Set<string>>(new Set());
-  const [isReviewingMissed, setIsReviewingMissed] = useState<boolean>(false);
+  const [learnMasteredIds, setLearnMasteredIds] = useState<Set<string>>(() => {
+    if (savedSession && savedSession.primaryMode === 'learn' && Array.isArray(savedSession.masteredCardIds)) {
+      return new Set(savedSession.masteredCardIds);
+    }
+    return new Set();
+  });
+  const [learnMissedIds, setLearnMissedIds] = useState<Set<string>>(() => {
+    if (savedSession && savedSession.primaryMode === 'learn' && Array.isArray(savedSession.missedCardIds)) {
+      return new Set(savedSession.missedCardIds);
+    }
+    return new Set();
+  });
+  const [isReviewingMissed, setIsReviewingMissed] = useState<boolean>(() => {
+    return Boolean(savedSession?.isReviewingMissed);
+  });
   const [isMiniDeckCleared, setIsMiniDeckCleared] = useState<boolean>(false);
 
   // Review Mode State:
-  const [reviewQueue, setReviewQueue] = useState<string[]>([]);
-  const [reviewActiveBatchIds, setReviewActiveBatchIds] = useState<string[]>([]);
-  const [reviewMasteredIds, setReviewMasteredIds] = useState<Set<string>>(new Set());
-  const [reviewMissedIds, setReviewMissedIds] = useState<Set<string>>(new Set());
+  const [reviewQueue, setReviewQueue] = useState<string[]>(() => {
+    if (savedSession && savedSession.primaryMode === 'review' && savedSession.queueCardIds?.length > 0) {
+      return savedSession.queueCardIds;
+    }
+    return [];
+  });
+  const [reviewActiveBatchIds, setReviewActiveBatchIds] = useState<string[]>(() => {
+    if (savedSession && savedSession.primaryMode === 'review' && savedSession.activeBatchIds?.length > 0) {
+      return savedSession.activeBatchIds;
+    }
+    return [];
+  });
+  const [reviewMasteredIds, setReviewMasteredIds] = useState<Set<string>>(() => {
+    if (savedSession && savedSession.primaryMode === 'review' && Array.isArray(savedSession.masteredCardIds)) {
+      return new Set(savedSession.masteredCardIds);
+    }
+    return new Set();
+  });
+  const [reviewMissedIds, setReviewMissedIds] = useState<Set<string>>(() => {
+    if (savedSession && savedSession.primaryMode === 'review' && Array.isArray(savedSession.missedCardIds)) {
+      return new Set(savedSession.missedCardIds);
+    }
+    return new Set();
+  });
 
   // Cards currently due for spaced repetition review across modeDeck
   const dueReviewCards = useMemo(() => {
@@ -197,13 +253,18 @@ export default function App() {
             return mergedProgress;
           });
 
-          // Initialize active learn batch queue with newly loaded deck and merged progress
-          const filtered = filterDeckByMode(result.items, studyMode);
-          const initialBatch = getBatchQueue(filtered, mergedProgress, BATCH_SIZE, 0);
-          setLearnQueue(initialBatch);
-          setLearnActiveBatchIds(initialBatch);
-          setLearnMasteredIds(new Set());
-          setLearnMissedIds(new Set());
+          const activeSession = loadActiveSession();
+          if (activeSession && activeSession.queueCardIds && activeSession.queueCardIds.length > 0) {
+            // Keep active session queue to preserve user mid-batch position!
+          } else {
+            // Initialize active learn batch queue with newly loaded deck and merged progress
+            const filtered = filterDeckByMode(result.items, studyMode);
+            const initialBatch = getBatchQueue(filtered, mergedProgress, BATCH_SIZE, batchIndex);
+            setLearnQueue(initialBatch);
+            setLearnActiveBatchIds(initialBatch);
+            setLearnMasteredIds(new Set());
+            setLearnMissedIds(new Set());
+          }
         }
       } catch (err) {
         console.warn('Failed to load unified deck:', err);
@@ -369,6 +430,7 @@ export default function App() {
 
   // Next Batch Action: pulls next 25 prioritized cards from SRS queue
   const handleNextBatch = useCallback(() => {
+    clearActiveSession();
     if (primaryMode === 'learn') {
       const nextIndex = batchIndex + 1;
       setBatchIndex(nextIndex);
@@ -453,6 +515,7 @@ export default function App() {
   // Reset Progress handler
   const handleConfirmReset = useCallback(() => {
     clearProgressFromStorage();
+    clearActiveSession();
     const fresh = initializeDefaultProgress(masterDeck.map((c) => c.id));
     const freshStats = calculateSRSStats(masterDeck.map((c) => c.id), fresh, []);
     totalFlipsRef.current = 0;
@@ -472,6 +535,39 @@ export default function App() {
     setIsMiniDeckCleared(false);
     setIsFlipped(false);
   }, [masterDeck, modeDeck]);
+
+  // Mid-Session SRS Progress & Queue State Persistence (jlpt_active_session_v1)
+  useEffect(() => {
+    if (sessionQueue.length === 0 && activeBatchIds.length > 0) {
+      // Full batch completed explicitly
+      clearActiveSession();
+      return;
+    }
+
+    if ((primaryMode === 'learn' || primaryMode === 'review') && sessionQueue.length > 0) {
+      const currentCardIndex = Math.max(0, activeBatchIds.length - sessionQueue.length);
+      saveActiveSession({
+        primaryMode,
+        studyMode,
+        batchIndex,
+        currentCardIndex,
+        queueCardIds: sessionQueue,
+        activeBatchIds,
+        masteredCardIds: Array.from(sessionMasteredIds),
+        missedCardIds: Array.from(sessionMissedIds),
+        isReviewingMissed,
+      });
+    }
+  }, [
+    sessionQueue,
+    activeBatchIds,
+    sessionMasteredIds,
+    sessionMissedIds,
+    primaryMode,
+    studyMode,
+    batchIndex,
+    isReviewingMissed,
+  ]);
 
   // Select card directly from deck overview
   const handleSelectCard = useCallback((cardId: string) => {
@@ -567,7 +663,10 @@ export default function App() {
   const isReviewModeEmpty = primaryMode === 'review' && activeBatchIds.length === 0;
 
   return (
-    <div className="h-full h-[100dvh] w-full max-w-full overflow-hidden box-border bg-[#F2EFE9] dark:bg-[#1E1B18] text-[#2B2B2B] dark:text-[#E6E1DA] flex flex-col transition-colors selection:bg-[#6B7F5E]/20 selection:text-[#6B7F5E]">
+    <div
+      className="h-full h-[100dvh] w-full max-w-full overflow-hidden box-border bg-[#F2EFE9] dark:bg-[#1E1B18] text-[#2B2B2B] dark:text-[#E6E1DA] flex flex-col transition-colors selection:bg-[#6B7F5E]/20 selection:text-[#6B7F5E]"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+    >
       {/* Row 1: Top Navigation / Header (compact padding, ~40px–50px max, flex-shrink: 0) */}
       <Header
         stats={stats}

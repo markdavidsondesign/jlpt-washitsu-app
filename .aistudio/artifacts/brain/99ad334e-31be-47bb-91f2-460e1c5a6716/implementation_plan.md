@@ -190,5 +190,34 @@ Expand the JLPT study platform from single kanji flashcards into a comprehensive
   - Triggers native installation prompt on Chromium/Android/Desktop.
   - Provides guided 3-step instructions for iOS Safari users.
 
+---
+
+## 9. Dynamic Spacing for Transitive & Intransitive Verb Pairs
+
+- **Pair Detection (`areCardsVerbPair`)**:
+  - Detects verb pairs using multiple metadata vectors: explicit `pairId` (e.g. `pair_開く_開ける`), cross-linked `relatedId`, direct dictionary lookup via `VERB_PAIRS_MAP`, `pairNote` cross-reference, and opposite transitivity flags (`他動詞` vs `自動詞`) sharing matching kanji roots.
+- **Dynamic Interleaving Algorithm (`interleavePairDistance`)**:
+  - Enforces a minimum spacing buffer of at least 5 to 8 cards (default `minSpacing = 6`, placing partner card no earlier than index $N + 6$).
+  - When constructing batches (`getBatchQueue` and `getReviewModeQueue`), if a card is placed at index $N$, its partner is deferred to index $\ge N + 6$.
+  - Swaps position with non-paired cards further down the queue to preserve queue variety without altering the overall batch composition (multiset of card IDs remains 100% identical).
+  - Handles multi-pair clusters and adapts gracefully for small queues.
+
+---
+
+## 10. iPhone iOS Web App Mode & Mid-Session State Persistence
+
+- **iOS Safe Area Top Inset Padding**:
+  - The `<header>` element and main container apply `padding-top: env(safe-area-inset-top, 16px)` and `padding-bottom: env(safe-area-inset-bottom, 0px)`.
+  - Header items (level badges, progress indicators, close/settings buttons) sit cleanly below the iPhone notch and Dynamic Island.
+  - Updated `<meta name="apple-mobile-web-app-status-bar-style" content="default">` in `index.html` ensuring crisp text legibility without blurred overlapping.
+- **Authentic Binary PNG Icon Generation**:
+  - Generated true binary PNG files for Mobile Safari home screen icons: `/public/apple-touch-icon.png` (180x180), `/public/icon-192.png` (192x192), `/public/icon-512.png` (512x512), and `/public/icon-32x32.png` (32x32), featuring Matcha Green (`#6B7F5E`), central Kanji 「学」 in Cream (`#F9F6F0`), and Vermilion Red (`#C84B31`) Hanko seal stamp 「N4」.
+  - All PNGs verified with valid binary PNG headers (`0x89 0x50 0x4e 0x47`) and output directly to the root distribution build directory (`dist/`).
+  - Added explicit absolute link tags in `index.html` (`<link rel="apple-touch-icon" href="/apple-touch-icon.png">`).
+- **Mid-Session SRS Progress & Queue State Persistence (`jlpt_active_session_v1`)**:
+  - Persists active queue order (`queueCardIds`), `currentCardIndex`, `batchIndex`, `masteredCardIds`, and `missedCardIds` whenever the user advances cards, rates cards, or switches views.
+  - On launch or returning from Quiz mode to Flashcards, automatically resumes from the saved card index and queue position rather than resetting to the batch start.
+  - Clears active session state only when the 25-card batch is explicitly completed or reset.
+
 
 

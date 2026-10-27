@@ -1,4 +1,6 @@
 import type { VocabCardItem, StudyMode } from '../data/vocabTypes.ts';
+import { VERB_PAIRS_MAP } from '../data/vocabFetcher.ts';
+import { FALLBACK_VOCAB_DATA } from '../data/fallbackVocab.ts';
 
 export type SRSLevel = 1 | 2 | 3;
 export type SRSAction = 'again' | 'good' | 'easy';
@@ -152,8 +154,245 @@ export function getDueReviewCards(
 }
 
 /**
+ * Detects if two vocabulary cards constitute a Transitive / Intransitive verb pair
+ * using metadata attributes: pairId, relatedId, VERB_PAIRS_MAP, pairNote,
+ * or matching kanji roots with opposing transitivity flags.
+ */
+export function areCardsVerbPair(
+  a: VocabCardItem | undefined,
+  b: VocabCardItem | undefined
+): boolean {
+  if (!a || !b || a.id === b.id) return false;
+
+  // 1. Explicit pairId match
+  if (a.pairId && b.pairId && a.pairId === b.pairId) {
+    return true;
+  }
+
+  // 2. Cross-referenced relatedId
+  if (a.relatedId && a.relatedId === b.id) return true;
+  if (b.relatedId && b.relatedId === a.id) return true;
+
+  // 3. Direct dictionary lookup in VERB_PAIRS_MAP
+  const pairA = VERB_PAIRS_MAP[a.expression];
+  if (pairA && (pairA.partner === b.expression || (pairA.partnerReading && pairA.partnerReading === b.reading))) {
+    return true;
+  }
+  const pairB = VERB_PAIRS_MAP[b.expression];
+  if (pairB && (pairB.partner === a.expression || (pairB.partnerReading && pairB.partnerReading === a.reading))) {
+    return true;
+  }
+
+  // Pure kana expression check
+  if (a.reading && VERB_PAIRS_MAP[a.reading]?.partner === b.expression) return true;
+  if (b.reading && VERB_PAIRS_MAP[b.reading]?.partner === a.expression) return true;
+
+  // 4. Pair note cross-reference
+  if (a.pairNote && (a.pairNote.includes(b.expression) || (b.reading && a.pairNote.includes(b.reading)))) {
+    return true;
+  }
+  if (b.pairNote && (b.pairNote.includes(a.expression) || (a.reading && b.pairNote.includes(a.reading)))) {
+    return true;
+  }
+
+  // 5. Opposing transitivity flags with shared kanji root
+  const isTransA = a.transitivity === 'transitive' || a.category?.includes('他動詞') || a.tags?.some((t) => /transitive|他動詞/i.test(t));
+  const isIntransA = a.transitivity === 'intransitive' || a.category?.includes('自動詞') || a.tags?.some((t) => /intransitive|自動詞/i.test(t));
+  const isTransB = b.transitivity === 'transitive' || b.category?.includes('他動詞') || b.tags?.some((t) => /transitive|他動詞/i.test(t));
+  const isIntransB = b.transitivity === 'intransitive' || b.category?.includes('自動詞') || b.tags?.some((t) => /intransitive|自動詞/i.test(t));
+
+  const opposingTransitivity = (isTransA && isIntransB) || (isIntransA && isTransB);
+  if (opposingTransitivity) {
+    const kanjiA = a.expression.match(/[\u4e00-\u9faf]/g);
+    const kanjiB = b.expression.match(/[\u4e00-\u9faf]/g);
+    if (kanjiA && kanjiB && kanjiA.some((k) => kanjiB.includes(k))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Returns a canonical identifier key for a verb pair, or undefined if the card is not paired.
+ */
+export function getVerbPairKey(card: VocabCardItem | undefined): string | undefined {
+  if (!card) return undefined;
+  if (card.pairId) return card.pairId;
+  if (card.relatedId) return `rel_${[card.id, card.relatedId].sort().join('_')}`;
+  const pair = VERB_PAIRS_MAP[card.expression];
+  if (pair) {
+    const sorted = [card.expression, pair.partner].sort();
+    return `pair_${sorted[0]}_${sorted[1]}`;
+  }
+  const kanji = card.expression.match(/[\u4e00-\u9faf]/g);
+  if ((card.transitivity === 'transitive' || card.transitivity === 'intransitive') && kanji) {
+    return `pair_kanji_${kanji.join('')}`;
+  }
+  return undefined;
+}
+
+/**
+ * Dynamic Spacing Interleaving Algorithm for Transitive / Intransitive Verb Pairs:
+ * - Detects verb pairs using metadata attributes (pairId, relatedId, VERB_PAIRS_MAP, matching kanji roots).
+ * - Enforces a minimum spacing buffer of at least 5 to 8 cards between a verb and its partner.
+ * - When constructing a batch (e.g., 25 cards), if an incoming card belongs to a pair with a card
+ *   already placed at index N, places the pair card no earlier than index N + 6.
+ * - Swaps position with non-paired cards further down the queue to preserve queue variety without
+ *   altering the overall batch composition (exact same set of cards is preserved).
+ */
+export function interleavePairDistance(
+  queueIds: string[],
+  deckOrMap: VocabCardItem[] | Record<string, VocabCardItem> | Map<string, VocabCardItem>,
+  minSpacing = 6
+): string[] {
+  if (!queueIds || queueIds.length <= 1) return [...(queueIds || [])];
+
+  const cardMap = new Map<string, VocabCardItem>();
+  if (Array.isArray(deckOrMap)) {
+    for (const item of deckOrMap) {
+      if (item?.id) cardMap.set(item.id, item);
+    }
+  } else if (deckOrMap instanceof Map) {
+    for (const [k, v] of deckOrMap.entries()) {
+      if (v) cardMap.set(k, v);
+    }
+  } else if (deckOrMap && typeof deckOrMap === 'object') {
+    for (const [k, v] of Object.entries(deckOrMap)) {
+      if (v) cardMap.set(k, v);
+    }
+  }
+
+  // Supplement missing IDs from FALLBACK_VOCAB_DATA if needed
+  for (const item of FALLBACK_VOCAB_DATA) {
+    if (!cardMap.has(item.id)) {
+      cardMap.set(item.id, item);
+    }
+  }
+
+  // For queues shorter than minSpacing + 2, adapt effective buffer
+  const effectiveSpacing = Math.min(minSpacing, Math.max(1, Math.floor(queueIds.length / 2)));
+  const result = [...queueIds];
+
+  // Multi-pass interleaving (up to 4 passes) to resolve cascaded swaps
+  for (let pass = 0; pass < 4; pass++) {
+    let swappedInPass = false;
+
+    for (let i = 0; i < result.length; i++) {
+      const currentCard = cardMap.get(result[i]);
+      if (!currentCard) continue;
+
+      // Check if currentCard conflicts with any card placed at index prev where i - prev < effectiveSpacing
+      let conflictPrevIdx = -1;
+      const searchBackStart = Math.max(0, i - effectiveSpacing + 1);
+      for (let prev = i - 1; prev >= searchBackStart; prev--) {
+        const prevCard = cardMap.get(result[prev]);
+        if (areCardsVerbPair(currentCard, prevCard)) {
+          conflictPrevIdx = prev;
+          break;
+        }
+      }
+
+      if (conflictPrevIdx !== -1) {
+        // Violates distance constraint! Target index must be >= conflictPrevIdx + effectiveSpacing
+        const targetMinIdx = conflictPrevIdx + effectiveSpacing;
+        let bestSwapIdx = -1;
+
+        // Pass A: Find candidate j >= targetMinIdx that does NOT conflict at i,
+        // and currentCard does NOT conflict at j
+        for (let j = targetMinIdx; j < result.length; j++) {
+          const candidate = cardMap.get(result[j]);
+          if (!candidate) continue;
+
+          // Candidate at j cannot conflict with cards before i
+          let conflictAtI = false;
+          for (let k = Math.max(0, i - effectiveSpacing + 1); k < i; k++) {
+            if (areCardsVerbPair(candidate, cardMap.get(result[k]))) {
+              conflictAtI = true;
+              break;
+            }
+          }
+          if (conflictAtI) continue;
+
+          // currentCard placed at j cannot conflict with cards around j
+          let conflictAtJ = false;
+          for (
+            let k = Math.max(0, j - effectiveSpacing + 1);
+            k <= Math.min(result.length - 1, j + effectiveSpacing - 1);
+            k++
+          ) {
+            if (k !== i && k !== j && areCardsVerbPair(currentCard, cardMap.get(result[k]))) {
+              conflictAtJ = true;
+              break;
+            }
+          }
+          if (conflictAtJ) continue;
+
+          bestSwapIdx = j;
+          break;
+        }
+
+        // Pass B: Any candidate j >= targetMinIdx that doesn't conflict at i
+        if (bestSwapIdx === -1) {
+          for (let j = targetMinIdx; j < result.length; j++) {
+            const candidate = cardMap.get(result[j]);
+            if (!candidate) continue;
+
+            let conflictAtI = false;
+            for (let k = Math.max(0, i - effectiveSpacing + 1); k < i; k++) {
+              if (areCardsVerbPair(candidate, cardMap.get(result[k]))) {
+                conflictAtI = true;
+                break;
+              }
+            }
+            if (!conflictAtI) {
+              bestSwapIdx = j;
+              break;
+            }
+          }
+        }
+
+        // Pass C: If targetMinIdx is at or past end of queue, find furthest card down that doesn't conflict at i
+        if (bestSwapIdx === -1) {
+          for (let j = result.length - 1; j > i; j--) {
+            const candidate = cardMap.get(result[j]);
+            if (!candidate) continue;
+
+            let conflictAtI = false;
+            for (let k = Math.max(0, i - effectiveSpacing + 1); k < i; k++) {
+              if (areCardsVerbPair(candidate, cardMap.get(result[k]))) {
+                conflictAtI = true;
+                break;
+              }
+            }
+            if (!conflictAtI) {
+              bestSwapIdx = j;
+              break;
+            }
+          }
+        }
+
+        // Swap positions
+        if (bestSwapIdx !== -1 && bestSwapIdx !== i) {
+          const temp = result[i];
+          result[i] = result[bestSwapIdx];
+          result[bestSwapIdx] = temp;
+          swappedInPass = true;
+        }
+      }
+    }
+
+    if (!swappedInPass) {
+      break;
+    }
+  }
+
+  return result;
+}
+
+/**
  * Returns a dedicated Review Mode queue containing ONLY previously studied/learned cards,
- * sorted strictly by SRS urgency (overdue items first).
+ * sorted strictly by SRS urgency (overdue items first) with dynamic verb pair spacing.
  */
 export function getReviewModeQueue(
   deck: VocabCardItem[],
@@ -161,7 +400,8 @@ export function getReviewModeQueue(
   limit = 25
 ): string[] {
   const sortedDue = getDueReviewCards(deck, progressMap);
-  return sortedDue.slice(0, limit).map((c) => c.id);
+  const rawQueue = sortedDue.slice(0, limit).map((c) => c.id);
+  return interleavePairDistance(rawQueue, deck, 6);
 }
 
 /**
@@ -169,6 +409,7 @@ export function getReviewModeQueue(
  * Dynamically interleaves due spaced-repetition review cards alongside unlearned/new JLPT N5/N4 cards:
  * 1. Prioritize overdue SRS cards (loaded from LocalStorage) first.
  * 2. Fill remaining batch slots with unlearned cards from the master list (sorted by priority).
+ * 3. Enforces dynamic spacing for transitive/intransitive verb pairs (minimum spacing buffer >= 6).
  */
 export function getBatchQueue(
   deck: VocabCardItem[],
@@ -240,14 +481,16 @@ export function getBatchQueue(
     }
 
     if (combinedIds.length > 0) {
-      return combinedIds.slice(0, batchSize);
+      const rawBatch = combinedIds.slice(0, batchSize);
+      return interleavePairDistance(rawBatch, deck, 6);
     }
   }
 
   // If all cards in this mode are mastered, allow practicing a batch of mastered cards
   mastered.sort((a, b) => a.priority - b.priority);
   const start = (batchIndex * batchSize) % (mastered.length || 1);
-  return mastered.slice(start, start + batchSize).map((i) => i.id);
+  const rawMasteredBatch = mastered.slice(start, start + batchSize).map((i) => i.id);
+  return interleavePairDistance(rawMasteredBatch, deck, 6);
 }
 
 /**
@@ -626,11 +869,65 @@ export function saveProgressToStorage(
 
 export const saveProgress = saveProgressToStorage;
 
+export const ACTIVE_SESSION_STORAGE_KEY = 'jlpt_active_session_v1';
+
+export interface ActiveSessionState {
+  version: 1;
+  primaryMode: 'learn' | 'review' | 'quiz';
+  studyMode: StudyMode;
+  batchIndex: number;
+  currentCardIndex: number;
+  queueCardIds: string[];
+  activeBatchIds: string[];
+  masteredCardIds: string[];
+  missedCardIds: string[];
+  isReviewingMissed?: boolean;
+  lastUpdated: number;
+}
+
+export function saveActiveSession(session: Omit<ActiveSessionState, 'version' | 'lastUpdated'>): void {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    const payload: ActiveSessionState = {
+      ...session,
+      version: 1,
+      lastUpdated: Date.now(),
+    };
+    window.localStorage.setItem(ACTIVE_SESSION_STORAGE_KEY, JSON.stringify(payload));
+  } catch (err) {
+    console.warn('Failed to save active session state:', err);
+  }
+}
+
+export function loadActiveSession(): ActiveSessionState | null {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return null;
+    const raw = window.localStorage.getItem(ACTIVE_SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || data.version !== 1 || !Array.isArray(data.queueCardIds)) return null;
+    return data as ActiveSessionState;
+  } catch (err) {
+    console.warn('Failed to load active session state:', err);
+    return null;
+  }
+}
+
+export function clearActiveSession(): void {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
+  } catch (err) {
+    console.warn('Failed to clear active session state:', err);
+  }
+}
+
 export function clearProgressFromStorage(): void {
   try {
     if (typeof window === 'undefined' || !window.localStorage) return;
     window.localStorage.removeItem(SRS_STORAGE_KEY);
     window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+    window.localStorage.removeItem(ACTIVE_SESSION_STORAGE_KEY);
   } catch (err) {
     console.warn('Failed to clear SRS progress from localStorage:', err);
   }

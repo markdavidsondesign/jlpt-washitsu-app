@@ -19,6 +19,8 @@ export interface VocabCardItem {
   category?: string;  // e.g., 'Transitive/Intransitive Pair', 'Giving/Receiving', 'Core N4 Verb'
   pairNote?: string;  // e.g., 'Intransitive pair: 開く (あく)'
   transitivity?: 'transitive' | 'intransitive'; // 'transitive' (他動詞) or 'intransitive' (自動詞)
+  pairId?: string;    // Unique pair identifier binding transitive/intransitive partners
+  relatedId?: string; // ID of the transitive/intransitive partner card
   exampleSentence?: ExampleSentence;
   radical?: string;   // Optional radical if primary kanji identified
 }

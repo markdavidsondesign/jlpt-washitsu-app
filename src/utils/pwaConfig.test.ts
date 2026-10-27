@@ -2,6 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import {
+  saveActiveSession,
+  loadActiveSession,
+  clearActiveSession,
+  ACTIVE_SESSION_STORAGE_KEY,
+} from './srs.ts';
 
 const rootDir = process.cwd();
 
@@ -15,7 +21,13 @@ test('PWA Web App Manifest: Valid configuration and fields', () => {
   assert.equal(content.theme_color, '#6B7F5E');
   assert.equal(content.background_color, '#F4F0EA');
   assert.equal(content.display, 'standalone');
-  assert.ok(content.icons && content.icons.length >= 4, 'Manifest must specify multiple icon sizes');
+  assert.ok(Array.isArray(content.icons) && content.icons.length >= 2, 'Manifest must specify PNG icons');
+
+  // Verify icons array points directly to true PNG files
+  const icon192 = content.icons.find((i: any) => i.sizes === '192x192');
+  const icon512 = content.icons.find((i: any) => i.sizes === '512x512');
+  assert.ok(icon192 && icon192.src === '/icon-192.png' && icon192.type === 'image/png');
+  assert.ok(icon512 && icon512.src === '/icon-512.png' && icon512.type === 'image/png');
 
   // Verify site.webmanifest matches
   const siteWebmanifestPath = path.join(rootDir, 'public', 'site.webmanifest');
@@ -27,8 +39,12 @@ test('index.html: iOS Web App meta tags and icon links', () => {
   const indexContent = fs.readFileSync(indexPath, 'utf8');
 
   assert.ok(
+    indexContent.includes('<link rel="apple-touch-icon" href="/apple-touch-icon.png">'),
+    'apple-touch-icon href link tag must be present'
+  );
+  assert.ok(
     indexContent.includes('<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">'),
-    'apple-touch-icon link tag must be present'
+    'apple-touch-icon 180x180 link tag must be present'
   );
   assert.ok(
     indexContent.includes('<link rel="icon" type="image/png" sizes="32x32" href="/icon-32x32.png">'),
@@ -39,8 +55,8 @@ test('index.html: iOS Web App meta tags and icon links', () => {
     'apple-mobile-web-app-capable meta tag must be present'
   );
   assert.ok(
-    indexContent.includes('<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">'),
-    'apple-mobile-web-app-status-bar-style meta tag must be present'
+    indexContent.includes('<meta name="apple-mobile-web-app-status-bar-style" content="default">'),
+    'apple-mobile-web-app-status-bar-style default meta tag must be present for crisp legibility'
   );
   assert.ok(
     indexContent.includes('<meta name="apple-mobile-web-app-title" content="JLPT Study">'),
@@ -56,26 +72,83 @@ test('index.html: iOS Web App meta tags and icon links', () => {
   );
 });
 
-test('App Icon Assets: Public assets exist with proper washitsu branding', () => {
+test('App Icon Assets: Public PNG assets exist as authentic binary PNG files', () => {
   const appleTouchPath = path.join(rootDir, 'public', 'apple-touch-icon.png');
+  const icon192Path = path.join(rootDir, 'public', 'icon-192.png');
   const icon512Path = path.join(rootDir, 'public', 'icon-512.png');
   const icon32Path = path.join(rootDir, 'public', 'icon-32x32.png');
   const iconSvgPath = path.join(rootDir, 'public', 'icon.svg');
 
   assert.ok(fs.existsSync(appleTouchPath), 'apple-touch-icon.png must exist');
+  assert.ok(fs.existsSync(icon192Path), 'icon-192.png must exist');
   assert.ok(fs.existsSync(icon512Path), 'icon-512.png must exist');
   assert.ok(fs.existsSync(icon32Path), 'icon-32x32.png must exist');
   assert.ok(fs.existsSync(iconSvgPath), 'icon.svg must exist');
 
-  // Verify SVG content contains Kanji 学 and Matcha Green #6B7F5E
-  const svgText = fs.readFileSync(appleTouchPath, 'utf8');
-  assert.ok(svgText.includes('#6B7F5E'), 'Icon must have Matcha Green background');
-  assert.ok(svgText.includes('学'), 'Icon must contain Kanji 学');
-  assert.ok(svgText.includes('#F9F6F0'), 'Icon must have soft cream emblem');
-  assert.ok(svgText.includes('#C84B31') || svgText.includes('#D4AF37'), 'Icon must have vermilion stamp or gold ring');
-
-  // Verify 32x32 PNG header
-  const pngBuf = fs.readFileSync(icon32Path);
+  // Verify PNG header signature (0x89 0x50 0x4e 0x47 0x0d 0x0a 0x1a 0x0a)
   const pngSig = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-  assert.ok(pngBuf.subarray(0, 8).equals(pngSig), 'icon-32x32.png must have valid PNG signature');
+
+  const appleTouchBuf = fs.readFileSync(appleTouchPath);
+  assert.ok(
+    appleTouchBuf.subarray(0, 8).equals(pngSig),
+    'apple-touch-icon.png must have a true binary PNG signature for Mobile Safari'
+  );
+
+  const icon192Buf = fs.readFileSync(icon192Path);
+  assert.ok(icon192Buf.subarray(0, 8).equals(pngSig), 'icon-192.png must have valid PNG signature');
+
+  const icon512Buf = fs.readFileSync(icon512Path);
+  assert.ok(icon512Buf.subarray(0, 8).equals(pngSig), 'icon-512.png must have valid PNG signature');
+
+  const icon32Buf = fs.readFileSync(icon32Path);
+  assert.ok(icon32Buf.subarray(0, 8).equals(pngSig), 'icon-32x32.png must have valid PNG signature');
+
+  // Verify icon.svg contains Kanji 学, Matcha Green #6B7F5E, and soft cream #F9F6F0
+  const svgText = fs.readFileSync(iconSvgPath, 'utf8');
+  assert.ok(svgText.includes('#6B7F5E'), 'Icon SVG must have Matcha Green background');
+  assert.ok(svgText.includes('学'), 'Icon SVG must contain Kanji 学');
+  assert.ok(svgText.includes('#F9F6F0'), 'Icon SVG must have soft cream emblem');
+});
+
+test('Mid-Session SRS Progress & Queue State Persistence', () => {
+  const memoryStore: Record<string, string> = {};
+  (globalThis as any).window = {
+    localStorage: {
+      getItem: (key: string) => memoryStore[key] || null,
+      setItem: (key: string, value: string) => { memoryStore[key] = value; },
+      removeItem: (key: string) => { delete memoryStore[key]; },
+    },
+  };
+
+  // Clear any existing session
+  clearActiveSession();
+  assert.equal(loadActiveSession(), null);
+
+  // Save an active session
+  saveActiveSession({
+    primaryMode: 'learn',
+    studyMode: 'n4',
+    batchIndex: 2,
+    currentCardIndex: 5,
+    queueCardIds: ['c6', 'c7', 'c8'],
+    activeBatchIds: ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8'],
+    masteredCardIds: ['c1', 'c2', 'c3', 'c4', 'c5'],
+    missedCardIds: ['c3'],
+    isReviewingMissed: false,
+  });
+
+  const loaded = loadActiveSession();
+  assert.ok(loaded, 'Active session must be loaded from storage');
+  assert.equal(loaded?.version, 1);
+  assert.equal(loaded?.primaryMode, 'learn');
+  assert.equal(loaded?.studyMode, 'n4');
+  assert.equal(loaded?.batchIndex, 2);
+  assert.equal(loaded?.currentCardIndex, 5);
+  assert.deepEqual(loaded?.queueCardIds, ['c6', 'c7', 'c8']);
+  assert.deepEqual(loaded?.masteredCardIds, ['c1', 'c2', 'c3', 'c4', 'c5']);
+  assert.deepEqual(loaded?.missedCardIds, ['c3']);
+
+  // Clear active session upon batch completion
+  clearActiveSession();
+  assert.equal(loadActiveSession(), null);
 });

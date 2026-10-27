@@ -1360,12 +1360,17 @@ export function rankAndEnrichVocab(rawItems: VocabCardItem[]): VocabCardItem[] {
     let meaning = item.meaning;
     let exampleSentence = item.exampleSentence;
 
+    let pairId = item.pairId;
+    let relatedId = item.relatedId;
+
     // Check if Transitive / Intransitive pair via robust lookup (handling kanji, kana, and homographs)
     const pair = findVerbPair(item.expression, item.reading, item.meaning);
     if (pair) {
       score = 20; // Highest tier
       category = 'Transitive / Intransitive Pair';
       transitivity = pair.type;
+      const sorted = [item.expression, pair.partner].sort();
+      pairId = pairId || `pair_${sorted[0]}_${sorted[1]}`;
 
       // Nuanced English definition:
       if (!meaning || meaning === item.expression || pair.nuancedMeaning.toLowerCase().includes(meaning.toLowerCase())) {
@@ -1405,6 +1410,13 @@ export function rankAndEnrichVocab(rawItems: VocabCardItem[]): VocabCardItem[] {
         // Ensure any pre-tagged verb reflects the nuanced definition
         meaning = formatNuancedDefinition(meaning, transitivity, item.expression);
       }
+
+      if (transitivity && !pairId) {
+        const kanjiMatches = item.expression.match(/[\u4e00-\u9faf]/g);
+        if (kanjiMatches && kanjiMatches.length > 0) {
+          pairId = `pair_kanji_${kanjiMatches.join('')}`;
+        }
+      }
     }
 
     if (pair) {
@@ -1437,6 +1449,8 @@ export function rankAndEnrichVocab(rawItems: VocabCardItem[]): VocabCardItem[] {
         category,
         pairNote,
         transitivity,
+        pairId,
+        relatedId,
         meaning,
         exampleSentence,
       },
@@ -1446,6 +1460,28 @@ export function rankAndEnrichVocab(rawItems: VocabCardItem[]): VocabCardItem[] {
 
   // Sort by score ascending (lowest score = highest priority rank)
   scoredItems.sort((a, b) => a.score - b.score);
+
+  // Step 3: Link relatedId across the deck for cards sharing a pairId
+  const pairGroups = new Map<string, VocabCardItem[]>();
+  for (const entry of scoredItems) {
+    if (entry.item.pairId) {
+      const list = pairGroups.get(entry.item.pairId) || [];
+      list.push(entry.item);
+      pairGroups.set(entry.item.pairId, list);
+    }
+  }
+
+  for (const [, pairList] of pairGroups) {
+    if (pairList.length >= 2) {
+      for (const card of pairList) {
+        const partner = pairList.find((p) => p.id !== card.id && p.transitivity !== card.transitivity) ||
+          pairList.find((p) => p.id !== card.id);
+        if (partner) {
+          card.relatedId = partner.id;
+        }
+      }
+    }
+  }
 
   // Assign clean sequential 1-based priority index
   return scoredItems.map((entry, index) => ({
