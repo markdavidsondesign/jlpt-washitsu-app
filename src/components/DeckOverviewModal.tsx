@@ -83,7 +83,7 @@ export const DeckOverviewModal: React.FC<DeckOverviewModalProps> = ({
             <h2 id="deck-modal-title" className="text-base sm:text-lg font-bold font-jp text-[#2B2B2B] dark:text-[#E6E1DA]">
               JLPT Master Deck ({cards.length} Words)
             </h2>
-            <p className="text-xs text-[#736B63] dark:text-[#A59E95]">
+            <p className="text-[13px] text-[#736B63] dark:text-[#A59E95] font-medium">
               Browse frequency-sorted vocabulary and check individual Leitner SRS levels
             </p>
           </div>
@@ -105,7 +105,7 @@ export const DeckOverviewModal: React.FC<DeckOverviewModalProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by Kanji, Hiragana reading, or English meaning..."
-              className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm rounded-xl bg-[#FAF8F5] dark:bg-[#1E1B18] border border-[#DED7CD] dark:border-[#38312B] text-[#2B2B2B] dark:text-[#E6E1DA] placeholder:text-[#A59E95] focus:outline-none focus:ring-2 focus:ring-[#6B7F5E]/40 focus:border-[#6B7F5E]"
+              className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl bg-[#FAF8F5] dark:bg-[#1E1B18] border border-[#DED7CD] dark:border-[#38312B] text-[#2B2B2B] dark:text-[#E6E1DA] placeholder:text-[#A59E95] focus:outline-none focus:ring-2 focus:ring-[#6B7F5E]/40 focus:border-[#6B7F5E]"
             />
           </div>
         </div>
@@ -114,12 +114,12 @@ export const DeckOverviewModal: React.FC<DeckOverviewModalProps> = ({
         <div className="px-4 sm:px-6 py-3 bg-[#F2EFE9] dark:bg-[#1E1B18]/70 border-b border-[#DED7CD] dark:border-[#38312B] flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap w-full min-h-[52px] overflow-visible">
           {/* JLPT Level filter */}
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[11px] font-semibold text-[#736B63] dark:text-[#A59E95] mr-1">Level:</span>
+            <span className="text-[13px] font-semibold text-[#736B63] dark:text-[#A59E95] mr-1">Level:</span>
             {(['all', 'N4', 'N5'] as const).map((lvl) => (
               <button
                 key={lvl}
                 onClick={() => setFilterJLPT(lvl)}
-                className={`px-3 py-1 text-xs font-semibold rounded-lg transition-colors ${
+                className={`px-3 py-1.5 text-[13px] font-semibold rounded-lg transition-colors ${
                   filterJLPT === lvl
                     ? 'bg-[#6B7F5E] text-white shadow-xs'
                     : 'bg-[#FAF8F5] dark:bg-[#28231F] text-[#736B63] dark:text-[#A59E95] border border-[#DED7CD] dark:border-[#38312B] hover:bg-[#EAE4DC] dark:hover:bg-[#342D27]'
@@ -132,10 +132,10 @@ export const DeckOverviewModal: React.FC<DeckOverviewModalProps> = ({
 
           {/* SRS Level filter */}
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[11px] font-semibold text-[#736B63] dark:text-[#A59E95] mr-1">SRS:</span>
+            <span className="text-[13px] font-semibold text-[#736B63] dark:text-[#A59E95] mr-1">SRS:</span>
             <button
               onClick={() => setFilterLevel('all')}
-              className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors ${
+              className={`px-2.5 py-1.5 text-[13px] font-semibold rounded-lg transition-colors ${
                 filterLevel === 'all'
                   ? 'bg-[#2B2B2B] text-white dark:bg-[#E6E1DA] dark:text-[#2B2B2B]'
                   : 'text-[#736B63] dark:text-[#A59E95] hover:text-[#2B2B2B] dark:hover:text-[#E6E1DA]'
@@ -145,7 +145,7 @@ export const DeckOverviewModal: React.FC<DeckOverviewModalProps> = ({
             </button>
             <button
               onClick={() => setFilterLevel('1')}
-              className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors ${
+              className={`px-2.5 py-1.5 text-[13px] font-semibold rounded-lg transition-colors ${
                 filterLevel === '1'
                   ? 'bg-[#C84B31] text-white'
                   : 'text-[#C84B31] hover:bg-[#FBF0EE] dark:hover:bg-[#36221D]'
@@ -155,7 +155,7 @@ export const DeckOverviewModal: React.FC<DeckOverviewModalProps> = ({
             </button>
             <button
               onClick={() => setFilterLevel('2')}
-              className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors ${
+              className={`px-2.5 py-1.5 text-[13px] font-semibold rounded-lg transition-colors ${
                 filterLevel === '2'
                   ? 'bg-[#8C6D3B] text-white'
                   : 'text-[#8C6D3B] hover:bg-[#F7F4EC] dark:hover:bg-[#332E23]'
@@ -165,7 +165,7 @@ export const DeckOverviewModal: React.FC<DeckOverviewModalProps> = ({
             </button>
             <button
               onClick={() => setFilterLevel('3')}
-              className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-colors ${
+              className={`px-2.5 py-1.5 text-[13px] font-semibold rounded-lg transition-colors ${
                 filterLevel === '3'
                   ? 'bg-[#4A6B53] text-white'
                   : 'text-[#4A6B53] hover:bg-[#EDF3EF] dark:hover:bg-[#202E24]'
@@ -204,17 +204,17 @@ export const DeckOverviewModal: React.FC<DeckOverviewModalProps> = ({
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-2 flex-wrap">
-                        <span className="font-jp text-base font-bold text-[#2B2B2B] dark:text-[#E6E1DA]">
+                        <span className="font-jp text-base sm:text-lg font-bold text-[#2B2B2B] dark:text-[#E6E1DA]">
                           {card.expression}
                         </span>
-                        <span className="font-jp text-xs font-semibold text-[#C84B31] dark:text-[#E88673]">
+                        <span className="font-jp text-[13px] font-bold text-[#C84B31] dark:text-[#E88673]">
                           【{card.reading}】
                         </span>
-                        <span className="text-xs text-[#554D46] dark:text-[#BDB6AC]">
+                        <span className="text-[13px] text-[#554D46] dark:text-[#BDB6AC] font-medium">
                           — {card.meaning}
                         </span>
                       </div>
-                      <div className="flex items-center gap-2 text-[11px] text-[#736B63] dark:text-[#A59E95] mt-0.5 flex-wrap">
+                      <div className="flex items-center gap-2 text-[13px] text-[#736B63] dark:text-[#A59E95] mt-0.5 flex-wrap font-medium">
                         <span className="font-semibold text-[#736B63] dark:text-[#A59E95]">Priority #{card.priority}</span>
                         {card.category && !card.transitivity && card.category !== 'Transitive / Intransitive' && (
                           <>
@@ -235,7 +235,7 @@ export const DeckOverviewModal: React.FC<DeckOverviewModalProps> = ({
                   <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pl-14 sm:pl-0">
                     {/* Transitivity Badge */}
                     {card.transitivity && (
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border font-jp ${
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border font-jp ${
                         card.transitivity === 'transitive'
                           ? 'bg-[#EEF3F8] dark:bg-[#1E2E40] text-[#2B4C6F] dark:text-[#8CB4DE] border-[#CAD8E6] dark:border-[#2B4C6F]'
                           : 'bg-[#F1F4EE] dark:bg-[#263123] text-[#5B7051] dark:text-[#A6C09C] border-[#D2DDCF] dark:border-[#3B4D36]'
@@ -245,7 +245,7 @@ export const DeckOverviewModal: React.FC<DeckOverviewModalProps> = ({
                     )}
 
                     {/* JLPT Pill */}
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg border ${
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-lg border ${
                       card.level === 'N4'
                         ? 'bg-[#FBF0EE] dark:bg-[#36221D] text-[#C84B31] dark:text-[#E88673] border-[#F2D1CA]/60 dark:border-[#522F26]'
                         : 'bg-[#EEF3F8] dark:bg-[#1E2E40] text-[#2B4C6F] dark:text-[#8CB4DE] border-[#CAD8E6]/60 dark:border-[#2B4C6F]'
@@ -254,8 +254,8 @@ export const DeckOverviewModal: React.FC<DeckOverviewModalProps> = ({
                     </span>
 
                     {/* Level Pill */}
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border flex items-center gap-1 ${meta.badge}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${meta.dot}`} />
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg border flex items-center gap-1.5 ${meta.badge}`}>
+                      <span className={`w-2 h-2 rounded-full ${meta.dot}`} />
                       <span>{meta.label}</span>
                     </span>
 
@@ -269,9 +269,8 @@ export const DeckOverviewModal: React.FC<DeckOverviewModalProps> = ({
                         title="Audio"
                         aria-label={`Pronounce ${card.expression}`}
                       >
-                        <Volume2 className="w-3.5 h-3.5" />
+                        <Volume2 className="w-4 h-4" />
                       </button>
-
                       <ChevronRight className="w-4 h-4 text-[#736B63] dark:text-[#A59E95] group-hover:text-[#6B7F5E] group-hover:translate-x-0.5 transition-all" />
                     </div>
                   </div>
@@ -279,8 +278,9 @@ export const DeckOverviewModal: React.FC<DeckOverviewModalProps> = ({
               );
             })
           )}
+
           {filteredCards.length > 100 && (
-            <div className="py-3 text-center text-xs text-[#736B63] dark:text-[#A59E95]">
+            <div className="py-3 text-center text-[13px] text-[#736B63] dark:text-[#A59E95] font-medium">
               Showing top 100 matches. Use search above to narrow down.
             </div>
           )}

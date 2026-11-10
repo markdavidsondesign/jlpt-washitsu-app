@@ -219,5 +219,42 @@ Expand the JLPT study platform from single kanji flashcards into a comprehensive
   - On launch or returning from Quiz mode to Flashcards, automatically resumes from the saved card index and queue position rather than resetting to the batch start.
   - Clears active session state only when the 25-card batch is explicitly completed or reset.
 
+---
+
+## 11. Multi-Deck Chooser & Individual Deck Progress Tracking
+
+- **Multi-Deck Selection State & Persistence (`jlpt_app_selected_decks`)**:
+  - Replaced the rigid `All | N4 | N5` tabs with interactive multi-deck selection (`selectedDeckIds: string[]`).
+  - Persisted under `jlpt_app_selected_decks` in `localStorage` with active session synchronization.
+  - `filterDeckByMode` and `filterDeckByDecks` dynamically filter `masterDeck` by checking `card.deckId` and normalized levels.
+- **Individual Deck Progress Calculations (`calculateDeckStats`)**:
+  - Calculates individual deck mastery progress (`${masteredCount} / ${totalCount} mastered`) and percentages per registered deck.
+  - Progress for unselected decks is strictly preserved in `progressMap`; reselecting a deck restores its exact progress state.
+- **Responsive Deck Chooser Modal (`DeckChooserModal.tsx`)**:
+  - Custom checkbox controls with Matcha Green (`#6B7F5E`) active state.
+  - Individual progress pills (e.g. `16 / 50 mastered`) and visual mastery progress bars.
+  - "Select All" and "Deselect All" (retaining at least 1 primary deck) quick actions.
+  - Prevents deselecting the final deck to ensure queue integrity.
+- **Header "Choose Decks" Button (`Header.tsx`)**:
+  - Replaced static tabs with dynamic button displaying `<Layers className="w-3.5 h-3.5" />` and adaptive labels (`All Decks (3)` or active deck titles like `JT4U N4`).
+  - Styled with washitsu aesthetics, crisp hover states, and smooth modal trigger.
+
+---
+
+## 12. JT4U N4 Deck Integration & Strict Source Document Fidelity
+
+- **Strict Google Doc Vocabulary Scope (536 Words)**:
+  - Source file: `/public/assets/aistudio/Japanese_Test_4_You_N4_Vocab_List_7ca7ea77`.
+  - Exactly 536 cards created, mapping strictly 1-to-1 to each line in the user's Google Doc without omissions, additions, or external dictionary words.
+  - Verbatim headword preservation (e.g. `集る`, `楽む`, `きっと`, `しばらく`, `しっかり`, `随分`).
+  - Verbatim English definition preservation directly from the source list text following the `:` separator.
+  - Pure phonetic Hiragana readings generated from romaji for natural Japanese TTS audio pronunciation.
+- **Example Sentence Removal**:
+  - Completely omitted `exampleSentence` fields from all cards in the `JT4U N4` deck.
+  - Card back UI automatically detects missing example sentences and omits the sentence block, presenting a clean layout featuring the target word, furigana reading, audio listen button, English definition, and tags.
+- **Deck Isolation & Filter Guard**:
+  - Updated `filterDeckByMode` and `getAvailableDecks` so cards with `deckId` only match their explicit deck selection, preventing `elzup_n4` or `elzup_n5` words from bleeding into the `JT4U N4` study queue.
+
+
 
 

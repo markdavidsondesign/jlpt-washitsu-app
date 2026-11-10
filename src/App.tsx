@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { VocabCardItem, StudyMode } from './data/vocabTypes';
-import { fetchUnifiedDeck, rankAndEnrichVocab } from './data/vocabFetcher';
+import { fetchUnifiedDeck, rankAndEnrichVocab, getAvailableDecks, getAllRegisteredCards } from './data/vocabFetcher';
 import { FALLBACK_VOCAB_DATA } from './data/fallbackVocab';
 import {
   CardProgress,
@@ -14,6 +14,7 @@ import {
   clearProgressFromStorage,
   processSRSAction,
   filterDeckByMode,
+  filterDeckByDecks,
   getBatchQueue,
   getReviewModeQueue,
   getDueReviewCards,
@@ -21,9 +22,12 @@ import {
   getNextQueue,
   SRS_STORAGE_KEY,
   ACTIVE_SESSION_STORAGE_KEY,
+  SELECTED_DECKS_STORAGE_KEY,
   saveActiveSession,
   loadActiveSession,
   clearActiveSession,
+  loadSelectedDeckIdsFromStorage,
+  saveSelectedDeckIdsToStorage,
 } from './utils/srs';
 import { Header, AppPrimaryMode } from './components/Header';
 import { KanjiCard, KanjiCardRef } from './components/KanjiCard';
@@ -31,6 +35,7 @@ import { SRSControls } from './components/SRSControls';
 import { SessionComplete } from './components/SessionComplete';
 import { ResetConfirmModal } from './components/ResetConfirmModal';
 import { DeckOverviewModal } from './components/DeckOverviewModal';
+import { DeckChooserModal } from './components/DeckChooserModal';
 import { MatchingQuiz } from './components/MatchingQuiz';
 import { Layers, CheckCircle2, ArrowRight } from 'lucide-react';
 
@@ -57,24 +62,52 @@ export default function App() {
     }
   }, [isDarkMode]);
 
-  // Master deck state & fetching initialized with normalized canonical cards
-  const [masterDeck, setMasterDeck] = useState<VocabCardItem[]>(() => rankAndEnrichVocab(FALLBACK_VOCAB_DATA));
+  // Master deck state & fetching initialized with all registered decks (elzup_n4, elzup_n5, jt4u_n4)
+  const [masterDeck, setMasterDeck] = useState<VocabCardItem[]>(() => rankAndEnrichVocab(getAllRegisteredCards()));
   const [, setIsLoadingDeck] = useState<boolean>(true);
   const [syncStatusMessage, setSyncStatusMessage] = useState<string>('Syncing JLPT N5 + N4...');
+
+  // Available decks registry with dynamic card counts
+  const availableDecks = useMemo(() => {
+    return getAvailableDecks(masterDeck);
+  }, [masterDeck]);
 
   // Active saved session state for mid-session persistence across browser tabs and views
   const savedSession = useRef<ReturnType<typeof loadActiveSession>>(loadActiveSession()).current;
 
-  // Navigation mode states: Primary Mode ('learn' | 'review') and Level Filter ('all' | 'n4' | 'n5')
+  // Selected deck IDs state (persisted under jlpt_app_selected_decks)
+  const [selectedDeckIds, setSelectedDeckIds] = useState<string[]>(() => {
+    if (savedSession?.selectedDeckIds && Array.isArray(savedSession.selectedDeckIds) && savedSession.selectedDeckIds.length > 0) {
+      return savedSession.selectedDeckIds;
+    }
+    return loadSelectedDeckIdsFromStorage(['elzup_n4', 'elzup_n5']);
+  });
+
+  // Save selected deck IDs whenever they change
+  useEffect(() => {
+    saveSelectedDeckIdsToStorage(selectedDeckIds);
+  }, [selectedDeckIds]);
+
+  // Derived legacy studyMode for backwards compatibility with active session structure
+  const studyMode: StudyMode = useMemo(() => {
+    if (availableDecks.length > 0 && selectedDeckIds.length === availableDecks.length) {
+      return 'all';
+    }
+    if (selectedDeckIds.includes('elzup_n4') && !selectedDeckIds.includes('elzup_n5')) {
+      return 'n4';
+    }
+    if (selectedDeckIds.includes('elzup_n5') && !selectedDeckIds.includes('elzup_n4')) {
+      return 'n5';
+    }
+    return selectedDeckIds;
+  }, [selectedDeckIds, availableDecks]);
+
+  // Navigation mode states: Primary Mode ('learn' | 'review')
   const [primaryMode, setPrimaryMode] = useState<AppPrimaryMode>(() => {
     if (savedSession?.primaryMode && (savedSession.primaryMode === 'learn' || savedSession.primaryMode === 'review')) {
       return savedSession.primaryMode;
     }
     return 'learn';
-  });
-  const [studyMode, setStudyMode] = useState<StudyMode>(() => {
-    if (savedSession?.studyMode) return savedSession.studyMode;
-    return 'all';
   });
 
   // Daily batch index for Learn Mode (0 = batch 1, 1 = batch 2, etc.)
@@ -89,12 +122,13 @@ export default function App() {
   // Modals state
   const [isResetModalOpen, setIsResetModalOpen] = useState<boolean>(false);
   const [isDeckListOpen, setIsDeckListOpen] = useState<boolean>(false);
+  const [isDeckChooserOpen, setIsDeckChooserOpen] = useState<boolean>(false);
 
   // Ref to active KanjiCard component
   const cardRef = useRef<KanjiCardRef>(null);
 
-  // Track previous studyMode and batchIndex to avoid resetting batch on deck re-fetch
-  const prevStudyModeRef = useRef<StudyMode>(studyMode);
+  // Track previous selectedDeckIds and batchIndex to avoid resetting batch on deck re-fetch
+  const prevSelectedDecksRef = useRef<string[]>(selectedDeckIds);
   const prevBatchIndexRef = useRef<number>(batchIndex);
 
   // Total flips counter tracked and persisted to LocalStorage under jlpt_app_progress_v1
@@ -113,10 +147,10 @@ export default function App() {
     })()
   );
 
-  // Filtered deck for active study mode (all / n4 / n5)
+  // Filtered deck for active selected decks (e.g. elzup_n4 + elzup_n5)
   const modeDeck = useMemo(() => {
-    return filterDeckByMode(masterDeck, studyMode);
-  }, [masterDeck, studyMode]);
+    return filterDeckByMode(masterDeck, selectedDeckIds);
+  }, [masterDeck, selectedDeckIds]);
 
   const modeCardIds = useMemo(() => {
     return modeDeck.map((c) => c.id);
@@ -124,7 +158,7 @@ export default function App() {
 
   // SRS Progress Map state (persisted to localStorage under jlpt_app_progress_v1)
   const [progressMap, setProgressMap] = useState<Record<string, CardProgress>>(() => {
-    const initialCards = rankAndEnrichVocab(FALLBACK_VOCAB_DATA);
+    const initialCards = rankAndEnrichVocab(getAllRegisteredCards());
     const stored = loadProgressFromStorage();
     if (stored && Object.keys(stored).length > 0) {
       return mergeProgressWithDeck(initialCards, stored);
@@ -140,14 +174,14 @@ export default function App() {
     if (savedSession && savedSession.primaryMode === 'learn' && savedSession.queueCardIds?.length > 0) {
       return savedSession.queueCardIds;
     }
-    const initialCards = rankAndEnrichVocab(FALLBACK_VOCAB_DATA);
+    const initialCards = rankAndEnrichVocab(getAllRegisteredCards());
     return getBatchQueue(initialCards, progressMap, BATCH_SIZE, 0);
   });
   const [learnActiveBatchIds, setLearnActiveBatchIds] = useState<string[]>(() => {
     if (savedSession && savedSession.primaryMode === 'learn' && savedSession.activeBatchIds?.length > 0) {
       return savedSession.activeBatchIds;
     }
-    const initialCards = rankAndEnrichVocab(FALLBACK_VOCAB_DATA);
+    const initialCards = rankAndEnrichVocab(getAllRegisteredCards());
     return getBatchQueue(initialCards, progressMap, BATCH_SIZE, 0);
   });
   const [learnMasteredIds, setLearnMasteredIds] = useState<Set<string>>(() => {
@@ -258,7 +292,7 @@ export default function App() {
             // Keep active session queue to preserve user mid-batch position!
           } else {
             // Initialize active learn batch queue with newly loaded deck and merged progress
-            const filtered = filterDeckByMode(result.items, studyMode);
+            const filtered = filterDeckByMode(result.items, selectedDeckIds);
             const initialBatch = getBatchQueue(filtered, mergedProgress, BATCH_SIZE, batchIndex);
             setLearnQueue(initialBatch);
             setLearnActiveBatchIds(initialBatch);
@@ -284,15 +318,41 @@ export default function App() {
     };
   }, []);
 
-  // Update learn batch queue when studyMode (All/N4/N5) or batchIndex genuinely changes
+  // Handlers for Deck Chooser Modal
+  const handleToggleDeck = useCallback((deckId: string) => {
+    setSelectedDeckIds((prev) => {
+      if (prev.includes(deckId)) {
+        if (prev.length <= 1) return prev; // Keep at least 1 deck selected
+        return prev.filter((id) => id !== deckId);
+      }
+      return [...prev, deckId];
+    });
+    setBatchIndex(0);
+  }, []);
+
+  const handleSelectAllDecks = useCallback(() => {
+    setSelectedDeckIds(availableDecks.map((d) => d.id));
+    setBatchIndex(0);
+  }, [availableDecks]);
+
+  const handleDeselectAllDecks = useCallback(() => {
+    if (availableDecks.length > 0) {
+      setSelectedDeckIds([availableDecks[0].id]);
+      setBatchIndex(0);
+    }
+  }, [availableDecks]);
+
+  // Update learn batch queue when selectedDeckIds or batchIndex genuinely changes
   useEffect(() => {
     if (modeDeck.length > 0 && primaryMode === 'learn' && !isReviewingMissed) {
-      const isModeOrIndexChange =
-        prevStudyModeRef.current !== studyMode || prevBatchIndexRef.current !== batchIndex;
-      prevStudyModeRef.current = studyMode;
+      const decksChanged =
+        prevSelectedDecksRef.current.length !== selectedDeckIds.length ||
+        prevSelectedDecksRef.current.some((id, idx) => id !== selectedDeckIds[idx]);
+      const isIndexChange = prevBatchIndexRef.current !== batchIndex;
+      prevSelectedDecksRef.current = selectedDeckIds;
       prevBatchIndexRef.current = batchIndex;
 
-      if (isModeOrIndexChange) {
+      if (decksChanged || isIndexChange) {
         const newBatch = getBatchQueue(modeDeck, progressMap, BATCH_SIZE, batchIndex);
         setLearnQueue(newBatch);
         setLearnActiveBatchIds(newBatch);
@@ -302,7 +362,7 @@ export default function App() {
         setIsMiniDeckCleared(false);
       }
     }
-  }, [studyMode, batchIndex, modeDeck, primaryMode, isReviewingMissed, progressMap]);
+  }, [selectedDeckIds, batchIndex, modeDeck, primaryMode, isReviewingMissed, progressMap]);
 
   // Current active card
   const currentCardId = sessionQueue[0] || null;
@@ -341,9 +401,17 @@ export default function App() {
     }
   }, [primaryMode, modeDeck, progressMap]);
 
-  // Sub-filter change handler (All, N4, N5)
+  // Sub-filter change handler (All, N4, N5, or deck ID array)
   const handleSelectMode = useCallback((newMode: StudyMode) => {
-    setStudyMode(newMode);
+    if (Array.isArray(newMode)) {
+      setSelectedDeckIds(newMode.length > 0 ? newMode : ['elzup_n4']);
+    } else if (newMode === 'all') {
+      setSelectedDeckIds(availableDecks.map((d) => d.id));
+    } else if (newMode === 'n4') {
+      setSelectedDeckIds(['elzup_n4']);
+    } else if (newMode === 'n5') {
+      setSelectedDeckIds(['elzup_n5']);
+    }
     setBatchIndex(0);
     setIsFlipped(false);
     setIsReviewingMissed(false);
@@ -357,7 +425,7 @@ export default function App() {
       setReviewMasteredIds(new Set());
       setReviewMissedIds(new Set());
     }
-  }, [primaryMode, masterDeck, progressMap]);
+  }, [primaryMode, masterDeck, progressMap, availableDecks]);
 
   // Flip handler: toggles flip & automatically triggers centralized saveProgress
   const handleFlip = useCallback(() => {
@@ -549,6 +617,7 @@ export default function App() {
       saveActiveSession({
         primaryMode,
         studyMode,
+        selectedDeckIds,
         batchIndex,
         currentCardIndex,
         queueCardIds: sessionQueue,
@@ -565,6 +634,7 @@ export default function App() {
     sessionMissedIds,
     primaryMode,
     studyMode,
+    selectedDeckIds,
     batchIndex,
     isReviewingMissed,
   ]);
@@ -653,7 +723,7 @@ export default function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleFlip, handleSRSAction, isResetModalOpen, isDeckListOpen, currentCardProgress.level]);
+  }, [handleFlip, handleSRSAction, isResetModalOpen, isDeckListOpen, isDeckChooserOpen, currentCardProgress.level]);
 
   // Accuracy metrics for the active batch
   const totalBatchCount = activeBatchIds.length || BATCH_SIZE;
@@ -672,11 +742,13 @@ export default function App() {
         stats={stats}
         primaryMode={primaryMode}
         onSelectPrimaryMode={handleSelectPrimaryMode}
+        selectedDeckIds={selectedDeckIds}
+        availableDecks={availableDecks}
+        onOpenDeckChooser={() => setIsDeckChooserOpen(true)}
         currentMode={studyMode}
-        onSelectMode={handleSelectMode}
         syncStatusMessage={syncStatusMessage}
         batchNumber={batchIndex}
-        batchTotal={Math.ceil(modeDeck.length / BATCH_SIZE)}
+        batchTotal={Math.ceil(modeDeck.length / BATCH_SIZE) || 1}
         batchRemaining={sessionQueue.length}
         dueReviewCount={dueReviewCards.length}
         isDarkMode={isDarkMode}
@@ -699,9 +771,9 @@ export default function App() {
         ) : sessionQueue.length > 0 && currentCard ? (
           <div className="w-full h-full max-w-[420px] max-h-[560px] mx-auto flex flex-col items-center justify-center min-h-0 box-border">
             {/* Session Progress Meta: Mastery-based tracking */}
-            <div className="w-[90%] max-w-[420px] flex-shrink-0 flex items-center justify-between text-[11px] text-[#736B63] dark:text-[#A59E95] mb-1 px-1 box-border font-medium">
+            <div className="w-[90%] max-w-[420px] flex-shrink-0 flex items-center justify-between text-[13px] sm:text-sm text-[#736B63] dark:text-[#A59E95] mb-1.5 px-1 box-border font-semibold">
               <span className="flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-[#6B7F5E]" />
+                <Layers className="w-4 h-4 text-[#6B7F5E]" />
                 <span>
                   {primaryMode === 'review'
                     ? 'Review Mode'
@@ -712,7 +784,7 @@ export default function App() {
                   Mastered {sessionMasteredIds.size} / {totalBatchCount}
                 </span>
               </span>
-              <span className="tabular-nums">
+              <span className="tabular-nums font-semibold">
                 {sessionQueue.length} in queue
               </span>
             </div>
@@ -727,7 +799,7 @@ export default function App() {
                 isFlipped={isFlipped}
                 onFlip={handleFlip}
                 onSwipe={handleSRSAction}
-                isModalOpen={isResetModalOpen || isDeckListOpen}
+                isModalOpen={isResetModalOpen || isDeckListOpen || isDeckChooserOpen}
               />
             </div>
           </div>
@@ -740,7 +812,7 @@ export default function App() {
             <h3 className="text-base sm:text-lg font-bold font-jp text-[#2B2B2B] dark:text-[#E6E1DA]">
               No Cards Currently Due for Review
             </h3>
-            <p className="text-xs text-[#736B63] dark:text-[#A59E95] mt-1.5 leading-relaxed">
+            <p className="text-sm text-[#736B63] dark:text-[#A59E95] mt-1.5 leading-relaxed font-medium">
               {stats.masteredCount + stats.mediumCount > 0
                 ? 'All studied cards are currently up to date in their spaced repetition intervals!'
                 : 'No cards have been studied yet. Complete a 25-card batch in Learn Mode first!'}
@@ -748,14 +820,14 @@ export default function App() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mt-4">
               <button
                 onClick={() => handleSelectPrimaryMode('learn')}
-                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#6B7F5E] hover:bg-[#5A6D4E] text-white text-xs font-semibold shadow-xs cursor-pointer inline-flex items-center justify-center gap-1.5 transition-colors"
+                className="w-full sm:w-auto px-4.5 py-2.5 rounded-xl bg-[#6B7F5E] hover:bg-[#5A6D4E] text-white text-sm font-semibold shadow-xs cursor-pointer inline-flex items-center justify-center gap-1.5 transition-colors"
               >
                 <span>Switch to Learn Mode</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-4 h-4" />
               </button>
               <button
                 onClick={() => handleSelectPrimaryMode('quiz')}
-                className="w-full sm:w-auto px-4 py-2 rounded-xl border border-[#CAD8C5] dark:border-[#384A33] bg-[#F0F3ED] dark:bg-[#242F22] text-[#4A6B53] dark:text-[#A6C09C] text-xs font-semibold shadow-xs cursor-pointer inline-flex items-center justify-center gap-1.5 transition-colors"
+                className="w-full sm:w-auto px-4.5 py-2.5 rounded-xl border border-[#CAD8C5] dark:border-[#384A33] bg-[#F0F3ED] dark:bg-[#242F22] text-[#4A6B53] dark:text-[#A6C09C] text-sm font-semibold shadow-xs cursor-pointer inline-flex items-center justify-center gap-1.5 transition-colors"
               >
                 <span>Play Matching Quiz</span>
               </button>
@@ -788,7 +860,10 @@ export default function App() {
 
       {/* Row 3: Bottom Action Buttons / Controls (hidden in quiz mode for zero-scroll viewport space) */}
       {primaryMode !== 'quiz' && (
-        <div className="w-full flex-shrink-0 h-auto max-h-[60px] py-1.5 sm:py-2 px-4 flex items-center justify-center border-t border-[#DED7CD] dark:border-[#38312B] bg-[#FAF8F5]/95 dark:bg-[#28231F]/95 z-20">
+        <div
+          className="w-full flex-shrink-0 pt-2.5 px-4 flex items-center justify-center border-t border-[#DED7CD] dark:border-[#2C2724] bg-[#FAF8F5] dark:bg-[#1F1D1B] z-20 box-border"
+          style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+        >
           {sessionQueue.length > 0 && currentCard ? (
             <SRSControls
               isFlipped={isFlipped}
@@ -810,7 +885,7 @@ export default function App() {
               }}
             />
           ) : (
-            <p className="font-medium text-[11px] text-[#736B63] dark:text-[#A59E95] text-center truncate">
+            <p className="font-medium text-[13px] text-[#736B63] dark:text-[#A59E95] text-center truncate">
               JLPT N4 Study · 和室 Leitner Spaced Repetition · Frequency Ranked
             </p>
           )}
@@ -830,6 +905,18 @@ export default function App() {
         cards={modeDeck}
         progressMap={progressMap}
         onSelectCard={handleSelectCard}
+      />
+
+      <DeckChooserModal
+        isOpen={isDeckChooserOpen}
+        onClose={() => setIsDeckChooserOpen(false)}
+        availableDecks={availableDecks}
+        selectedDeckIds={selectedDeckIds}
+        onToggleDeck={handleToggleDeck}
+        onSelectAllDecks={handleSelectAllDecks}
+        onDeselectAllDecks={handleDeselectAllDecks}
+        progressMap={progressMap}
+        masterDeck={masterDeck}
       />
     </div>
   );

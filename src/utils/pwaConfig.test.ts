@@ -39,12 +39,12 @@ test('index.html: iOS Web App meta tags and icon links', () => {
   const indexContent = fs.readFileSync(indexPath, 'utf8');
 
   assert.ok(
-    indexContent.includes('<link rel="apple-touch-icon" href="/apple-touch-icon.png">'),
-    'apple-touch-icon href link tag must be present'
-  );
-  assert.ok(
     indexContent.includes('<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">'),
     'apple-touch-icon 180x180 link tag must be present'
+  );
+  assert.ok(
+    indexContent.includes('<link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png">'),
+    'apple-touch-icon-precomposed link tag must be present'
   );
   assert.ok(
     indexContent.includes('<link rel="icon" type="image/png" sizes="32x32" href="/icon-32x32.png">'),

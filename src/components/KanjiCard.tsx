@@ -345,16 +345,16 @@ export const KanjiCard = forwardRef<KanjiCardRef, KanjiCardProps>(({
 
           {/* ================= FRONT OF CARD (Warm Washi Paper / Dark Cedar Wood) ================= */}
           {!isFlipped ? (
-            <div className="w-full h-full rounded-2xl sm:rounded-3xl bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD] dark:border-[#38312B] flex flex-col justify-between p-3 sm:p-4 gap-2 animate-in fade-in duration-200 box-border text-left min-h-0 overflow-hidden">
+            <div className="w-full h-full rounded-2xl sm:rounded-3xl bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD] dark:border-[#38312B] flex flex-col justify-between p-3.5 sm:p-4.5 gap-2.5 animate-in fade-in duration-200 box-border text-left min-h-0 overflow-hidden">
               {/* Top metadata row: Level badge (top left) and JLPT badge (top right) */}
               <div className="flex items-center justify-between w-full shrink-0">
-                <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-medium ${currentBadge.bg} ${currentBadge.text}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${currentBadge.dot}`} />
+                <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[13px] font-semibold ${currentBadge.bg} ${currentBadge.text}`}>
+                  <span className={`w-2 h-2 rounded-full ${currentBadge.dot}`} />
                   <span>{currentBadge.label}</span>
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md border ${
+                  <span className={`text-[13px] font-bold px-2.5 py-1 rounded-lg border ${
                     card.level === 'N4'
                       ? 'bg-[#FBF0EE] dark:bg-[#36221D] text-[#C84B31] dark:text-[#E88673] border-[#F2D1CA]/60 dark:border-[#522F26]'
                       : 'bg-[#EEF3F8] dark:bg-[#1E2E40] text-[#2B4C6F] dark:text-[#8CB4DE] border-[#CAD8E6]/60 dark:border-[#2B4C6F]'
@@ -371,26 +371,26 @@ export const KanjiCard = forwardRef<KanjiCardRef, KanjiCardProps>(({
                 </span>
               </div>
 
-              {/* Simple footer hints ("Tap to flip", "Swipe left/right") */}
-              <div className="border-t border-[#DED7CD]/70 dark:border-[#38312B]/80 pt-2 flex items-center justify-between text-[10px] sm:text-[11px] font-medium text-[#736B63] dark:text-[#A59E95] shrink-0">
-                <span className="text-[#C84B31] dark:text-[#E88673] flex items-center gap-0.5">
-                  <ArrowLeft className="w-3 h-3" /> Swipe Left (Again)
+              {/* Simple footer hints ("Tap to flip", "Swipe left/right") scaled up for crisp readability */}
+              <div className="border-t border-[#DED7CD]/70 dark:border-[#38312B]/80 pt-2.5 flex items-center justify-between text-[13px] sm:text-sm font-semibold text-[#736B63] dark:text-[#A59E95] shrink-0">
+                <span className="text-[#C84B31] dark:text-[#E88673] flex items-center gap-1 font-semibold">
+                  <ArrowLeft className="w-3.5 h-3.5" /> Swipe Left (Again)
                 </span>
-                <span className="text-[#2B2B2B] dark:text-[#E6E1DA] font-semibold">
+                <span className="text-[#2B2B2B] dark:text-[#E6E1DA] font-bold">
                   Tap to flip
                 </span>
-                <span className="text-[#4A6B53] dark:text-[#8BAF95] flex items-center gap-0.5">
-                  Swipe Right (Good) <ArrowRight className="w-3 h-3" />
+                <span className="text-[#4A6B53] dark:text-[#8BAF95] flex items-center gap-1 font-semibold">
+                  Swipe Right (Good) <ArrowRight className="w-3.5 h-3.5" />
                 </span>
               </div>
             </div>
           ) : (
             /* ================= BACK OF CARD (Warm Washi Paper / Dark Cedar Wood) ================= */
-            <div className="w-full h-full rounded-2xl sm:rounded-3xl bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD] dark:border-[#38312B] flex flex-col justify-start p-3.5 sm:p-4 gap-3 animate-in fade-in duration-200 text-left box-border min-h-0 overflow-hidden">
+            <div className="w-full h-full rounded-2xl sm:rounded-3xl bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD] dark:border-[#38312B] flex flex-col justify-start p-3.5 sm:p-4.5 gap-3 animate-in fade-in duration-200 text-left box-border min-h-0 overflow-hidden">
               {/* Back Header: Target Word avatar, Furigana reading & Clean Listen button */}
               <div className="flex items-center justify-between border-b border-[#DED7CD]/70 dark:border-[#38312B]/80 pb-2 shrink-0">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="min-w-9 h-9 px-2.5 py-1 rounded-xl bg-[#FBF0EE] dark:bg-[#36221D] text-[#C84B31] dark:text-[#E88673] border border-[#F2D1CA] dark:border-[#522F26] flex items-center justify-center font-jp text-sm sm:text-base font-bold shrink-0 shadow-2xs whitespace-nowrap">
+                  <div className="min-w-10 h-10 px-3 py-1 rounded-xl bg-[#FBF0EE] dark:bg-[#36221D] text-[#C84B31] dark:text-[#E88673] border border-[#F2D1CA] dark:border-[#522F26] flex items-center justify-center font-jp text-sm sm:text-base font-bold shrink-0 shadow-2xs whitespace-nowrap">
                     {card.expression}
                   </div>
                   <div className="min-w-0">
@@ -401,21 +401,21 @@ export const KanjiCard = forwardRef<KanjiCardRef, KanjiCardProps>(({
                       {/* Audio Button */}
                       <button
                         onClick={handlePlayReadingAudio}
-                        className="flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[11px] font-semibold text-[#2B2B2B] dark:text-[#E6E1DA] hover:text-[#6B7F5E] dark:hover:text-[#A6C09C] bg-[#EAE4DC] hover:bg-[#DDD6CC] dark:bg-[#342D27] dark:hover:bg-[#403730] transition-colors pointer-events-auto border border-[#DED7CD]/60 dark:border-[#38312B] cursor-pointer"
+                        className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[13px] font-semibold text-[#2B2B2B] dark:text-[#E6E1DA] hover:text-[#6B7F5E] dark:hover:text-[#A6C09C] bg-[#EAE4DC] hover:bg-[#DDD6CC] dark:bg-[#342D27] dark:hover:bg-[#403730] transition-colors pointer-events-auto border border-[#DED7CD]/60 dark:border-[#38312B] cursor-pointer"
                         title="Listen to pronunciation"
                         aria-label="Listen to pronunciation"
                       >
-                        <Volume2 className="w-3 h-3 text-[#6B7F5E]" />
+                        <Volume2 className="w-3.5 h-3.5 text-[#6B7F5E]" />
                         <span>Listen</span>
                       </button>
                     </div>
-                    <p className="text-[10px] text-[#736B63] dark:text-[#A59E95] mt-0.5">
+                    <p className="text-[13px] font-medium text-[#736B63] dark:text-[#A59E95] mt-0.5">
                       Furigana / Reading (JLPT {card.level})
                     </p>
                   </div>
                 </div>
 
-                <span className="text-[10px] font-medium text-[#736B63] dark:text-[#A59E95] shrink-0">
+                <span className="text-[13px] font-semibold text-[#736B63] dark:text-[#A59E95] shrink-0">
                   Tap to flip
                 </span>
               </div>
@@ -425,32 +425,32 @@ export const KanjiCard = forwardRef<KanjiCardRef, KanjiCardProps>(({
                 {/* Meaning & Verb Tag Group (Eliminating full-width box, inline pill tag) */}
                 <div className="flex flex-col gap-1.5 shrink-0">
                   <div>
-                    <span className="text-[10px] uppercase tracking-wider font-semibold text-[#736B63] dark:text-[#A59E95]">
+                    <span className="text-xs uppercase tracking-wider font-bold text-[#736B63] dark:text-[#A59E95]">
                       English Meaning
                     </span>
-                    <p className="text-[clamp(1rem,2.4vh,1.2rem)] font-bold text-[#2B2B2B] dark:text-[#E6E1DA] mt-0.5 leading-snug">
+                    <p className="text-[clamp(1.05rem,2.5vh,1.25rem)] font-bold text-[#2B2B2B] dark:text-[#E6E1DA] mt-0.5 leading-snug">
                       {card.meaning}
                     </p>
                   </div>
 
                   {/* Compact Inline Pill Tag for Transitive / Intransitive Verb Pairs */}
                   {card.transitivity === 'transitive' && (
-                    <div className="inline-flex w-fit items-center gap-1.5 px-2.5 py-1 rounded-md text-[0.85rem] font-bold font-jp bg-[#EEF3F8] dark:bg-[#1E2E40] text-[#2B4C6F] dark:text-[#8CB4DE] border border-[#CAD8E6] dark:border-[#2B4C6F] shadow-2xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#2B4C6F] dark:bg-[#8CB4DE] shrink-0" />
+                    <div className="inline-flex w-fit items-center gap-1.5 px-3 py-1 rounded-lg text-[13px] sm:text-sm font-bold font-jp bg-[#EEF3F8] dark:bg-[#1E2E40] text-[#2B4C6F] dark:text-[#8CB4DE] border border-[#CAD8E6] dark:border-[#2B4C6F] shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-[#2B4C6F] dark:bg-[#8CB4DE] shrink-0" />
                       <span>他動詞 (Transitive - Takes Object)</span>
                     </div>
                   )}
 
                   {card.transitivity === 'intransitive' && (
-                    <div className="inline-flex w-fit items-center gap-1.5 px-2.5 py-1 rounded-md text-[0.85rem] font-bold font-jp bg-[#F1F4EE] dark:bg-[#263123] text-[#5B7051] dark:text-[#A6C09C] border border-[#D2DDCF] dark:border-[#3B4D36] shadow-2xs">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#5B7051] dark:bg-[#A6C09C] shrink-0" />
+                    <div className="inline-flex w-fit items-center gap-1.5 px-3 py-1 rounded-lg text-[13px] sm:text-sm font-bold font-jp bg-[#F1F4EE] dark:bg-[#263123] text-[#5B7051] dark:text-[#A6C09C] border border-[#D2DDCF] dark:border-[#3B4D36] shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-[#5B7051] dark:bg-[#A6C09C] shrink-0" />
                       <span>自動詞 (Intransitive - No Object)</span>
                     </div>
                   )}
 
                   {card.category && !card.transitivity && card.category !== 'Transitive / Intransitive' && (
-                    <div className="inline-flex w-fit items-center gap-1.5 px-2.5 py-1 rounded-md text-[0.85rem] font-bold font-jp bg-[#F7F4EC] dark:bg-[#332E23] text-[#8C6D3B] dark:text-[#DEC88E] border border-[#E8DFC9] dark:border-[#504734] shadow-2xs">
-                      <Sparkles className="w-3 h-3 text-[#8C6D3B] dark:text-[#DEC88E] shrink-0" />
+                    <div className="inline-flex w-fit items-center gap-1.5 px-3 py-1 rounded-lg text-[13px] sm:text-sm font-bold font-jp bg-[#F7F4EC] dark:bg-[#332E23] text-[#8C6D3B] dark:text-[#DEC88E] border border-[#E8DFC9] dark:border-[#504734] shadow-2xs">
+                      <Sparkles className="w-3.5 h-3.5 text-[#8C6D3B] dark:text-[#DEC88E] shrink-0" />
                       <span>{card.category}</span>
                     </div>
                   )}
@@ -459,22 +459,22 @@ export const KanjiCard = forwardRef<KanjiCardRef, KanjiCardProps>(({
                 {/* Compact Washitsu Component Pill Row: All Constituent Radicals & Sub-elements */}
                 {decompositions.length > 0 && (
                   <div className="flex flex-col gap-1 shrink-0">
-                    <span className="text-[10px] uppercase tracking-wider font-semibold text-[#736B63] dark:text-[#A59E95]">
+                    <span className="text-xs uppercase tracking-wider font-bold text-[#736B63] dark:text-[#A59E95]">
                       Constituent Elements
                     </span>
                     <div className="flex flex-wrap items-center" style={{ gap: '6px' }}>
                       {decompositions.map((group) => (
                         <div key={group.kanji} className="flex flex-wrap items-center" style={{ gap: '6px' }}>
                           {decompositions.length > 1 && (
-                            <span className="font-jp font-bold text-xs text-[#C84B31] dark:text-[#E88673] px-1.5 py-0.5 rounded bg-[#FBF0EE] dark:bg-[#36221D] border border-[#F2D1CA]/60 dark:border-[#522F26]">
+                            <span className="font-jp font-bold text-[13px] text-[#C84B31] dark:text-[#E88673] px-2 py-0.5 rounded-md bg-[#FBF0EE] dark:bg-[#36221D] border border-[#F2D1CA]/60 dark:border-[#522F26]">
                               {group.kanji}
                             </span>
                           )}
                           {group.components.map((comp) => (
                             <span
                               key={group.kanji + '-' + comp.char}
-                              className="inline-flex items-center rounded-md font-medium bg-[#EFECE6] dark:bg-[#322B25] text-[#3B322A] dark:text-[#D5CEC5] border border-[#DDD6CC] dark:border-[#423A32] shadow-2xs whitespace-nowrap"
-                              style={{ padding: '3px 8px', fontSize: '0.8rem' }}
+                              className="inline-flex items-center rounded-lg font-medium bg-[#EFECE6] dark:bg-[#322B25] text-[#3B322A] dark:text-[#D5CEC5] border border-[#DDD6CC] dark:border-[#423A32] shadow-2xs whitespace-nowrap"
+                              style={{ padding: '4px 9px', fontSize: '0.85rem' }}
                             >
                               <strong className="font-jp font-bold mr-1 text-[#2B2B2B] dark:text-[#FAF8F5]">
                                 {comp.char}
@@ -494,7 +494,7 @@ export const KanjiCard = forwardRef<KanjiCardRef, KanjiCardProps>(({
                 )}
 
                 {/* Compact Subtle Metadata Row: Exam Priority & Streak */}
-                <div className="flex items-center gap-2.5 text-[11px] text-[#736B63] dark:text-[#A59E95] font-medium shrink-0 pt-0.5">
+                <div className="flex items-center gap-2.5 text-[13px] text-[#736B63] dark:text-[#A59E95] font-semibold shrink-0 pt-0.5">
                   <span>Exam Priority #{card.priority}</span>
                   {streak > 0 && (
                     <>
@@ -510,28 +510,27 @@ export const KanjiCard = forwardRef<KanjiCardRef, KanjiCardProps>(({
                 {card.exampleSentence && (
                   <div className="shrink-0 mt-1">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] uppercase tracking-wider font-semibold text-[#736B63] dark:text-[#A59E95]">
+                      <span className="text-xs uppercase tracking-wider font-bold text-[#736B63] dark:text-[#A59E95]">
                         Example Sentence
                       </span>
                       <button
                         onClick={handlePlaySentenceAudio}
-                        className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium text-[#736B63] dark:text-[#A59E95] hover:text-[#6B7F5E] dark:hover:text-[#A6C09C] transition-colors pointer-events-auto cursor-pointer"
+                        className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[13px] font-semibold text-[#736B63] dark:text-[#A59E95] hover:text-[#6B7F5E] dark:hover:text-[#A6C09C] transition-colors pointer-events-auto cursor-pointer"
                         title="Play sentence audio"
                         aria-label="Play example sentence audio"
                       >
-                        <Volume2 className="w-3 h-3 text-[#6B7F5E]" />
+                        <Volume2 className="w-3.5 h-3.5 text-[#6B7F5E]" />
                         <span>Listen</span>
                       </button>
                     </div>
-
-                    <div className="p-2.5 rounded-xl bg-[#F5F2EC] dark:bg-[#201C18] border border-[#DED7CD] dark:border-[#38312B]">
-                      <p className="font-jp text-[clamp(0.85rem,2.1vh,0.95rem)] font-medium text-[#2B2B2B] dark:text-[#E6E1DA] leading-snug">
+                    <div className="p-3 rounded-xl bg-[#F5F2EC] dark:bg-[#201C18] border border-[#DED7CD] dark:border-[#38312B]">
+                      <p className="font-jp text-[clamp(0.95rem,2.2vh,1.05rem)] font-medium text-[#2B2B2B] dark:text-[#E6E1DA] leading-snug">
                         {card.exampleSentence.japanese}
                       </p>
-                      <p className="font-jp text-[11px] text-[#736B63] dark:text-[#A59E95] mt-0.5 leading-tight">
+                      <p className="font-jp text-[13px] font-medium text-[#736B63] dark:text-[#A59E95] mt-1 leading-normal">
                         {card.exampleSentence.furigana}
                       </p>
-                      <p className="text-[11px] text-[#554D46] dark:text-[#BDB6AC] mt-1 italic leading-tight">
+                      <p className="text-[13px] font-medium text-[#554D46] dark:text-[#BDB6AC] mt-1 italic leading-normal">
                         "{card.exampleSentence.english}"
                       </p>
                     </div>

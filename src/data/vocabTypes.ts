@@ -1,6 +1,17 @@
 export type JLPTLevel = 'N4' | 'N5';
-export type StudyMode = 'all' | 'n4' | 'n5';
+export type StudyMode = 'all' | 'n4' | 'n5' | string[];
+export type SelectedDeckIds = string[];
 export type DataSyncStatus = 'loading' | 'synced-json' | 'synced-csv' | 'fallback';
+
+export type DeckId = 'elzup_n4' | 'elzup_n5' | 'jt4u_n4' | (string & {});
+
+export interface DeckMetadata {
+  id: DeckId;
+  name: string;
+  description: string;
+  level: 'N4' | 'N5';
+  cardCount: number;
+}
 
 export interface ExampleSentence {
   japanese: string;
@@ -10,6 +21,7 @@ export interface ExampleSentence {
 
 export interface VocabCardItem {
   id: string;
+  deckId?: DeckId;
   expression: string; // The target word (Kanji, Kana, or Compound)
   reading: string;    // Pure Hiragana phonetic reading for TTS & furigana
   meaning: string;    // English definition

@@ -42,9 +42,37 @@ export interface StoredAppState {
 }
 
 /**
- * Filters the master deck according to user's selected study mode
+ * Filters the master deck according to user's selected study mode or array of selected deck IDs.
+ * Checks card.deckId, card.level.toLowerCase(), and deck conventions (e.g. elzup_n4, n4).
  */
-export function filterDeckByMode(deck: VocabCardItem[], mode: StudyMode): VocabCardItem[] {
+export function filterDeckByMode(deck: VocabCardItem[], mode: StudyMode | string[]): VocabCardItem[] {
+  if (Array.isArray(mode)) {
+    if (mode.length === 0) return deck;
+    return deck.filter((item) => {
+      // 1. Direct deckId match takes precedence
+      if (item.deckId) {
+        if (mode.includes(item.deckId)) {
+          return true;
+        }
+        // Support legacy general level tags (e.g. ['n4'] or ['N4'])
+        const lower = item.level.toLowerCase();
+        if (mode.includes(lower) || mode.includes(item.level)) {
+          return true;
+        }
+        return false;
+      }
+      // 2. Fallback for untagged cards: match by level or elzup prefix
+      const lower = item.level.toLowerCase();
+      if (mode.includes(lower) || mode.includes(item.level)) {
+        return true;
+      }
+      if (mode.includes(`elzup_${lower}`)) {
+        return true;
+      }
+      return false;
+    });
+  }
+
   if (mode === 'n4') {
     return deck.filter((item) => item.level === 'N4');
   }
@@ -53,6 +81,13 @@ export function filterDeckByMode(deck: VocabCardItem[], mode: StudyMode): VocabC
   }
   // 'all' includes both N4 and N5 sorted by frequency priority
   return deck;
+}
+
+/**
+ * Convenience helper to filter cards by array of selected deck IDs
+ */
+export function filterDeckByDecks(deck: VocabCardItem[], selectedDeckIds: string[]): VocabCardItem[] {
+  return filterDeckByMode(deck, selectedDeckIds);
 }
 
 /**
@@ -635,23 +670,69 @@ export function initializeDefaultProgress(allCardIds: string[]): Record<string, 
 }
 
 /**
+ * Calculates SRS statistics for an individual deck ID given master deck cards and progress map.
+ * Returns { masteredCount, totalCount, masteryPercentage }.
+ */
+export function calculateDeckStats(
+  deckId: string,
+  deckCards: VocabCardItem[],
+  progressMap: Record<string, CardProgress>
+): { masteredCount: number; totalCount: number; masteryPercentage: number } {
+  const cardsInDeck = deckCards.filter((card) => {
+    if (card.deckId === deckId) return true;
+    const lower = card.level.toLowerCase();
+    if (deckId === lower || deckId === card.level || deckId === `elzup_${lower}`) return true;
+    return false;
+  });
+
+  const totalCount = cardsInDeck.length;
+  let masteredCount = 0;
+  for (const card of cardsInDeck) {
+    const cardKey = String(card.id);
+    const p = progressMap[cardKey] || progressMap[card.id];
+    if (p && (p.level === 3 || p.srsLevel === 3 || p.mastered)) {
+      masteredCount++;
+    }
+  }
+  const masteryPercentage = totalCount > 0 ? Math.round((masteredCount / totalCount) * 100) : 0;
+  return { masteredCount, totalCount, masteryPercentage };
+}
+
+/**
  * Derives aggregate stats from progress map:
  * - dueTodayCount strictly counts cards that have been previously studied AND nextReviewDate <= Date.now()
  * - Unstudied / New cards (Level 1) are NEVER counted as due
+ * - Supports calculating either for combined cards OR filtered to an individual deckId.
  */
 export function calculateSRSStats(
-  allCardIds: string[],
+  allCardIdsOrCards: (string | VocabCardItem)[],
   progressMap: Record<string, CardProgress>,
   currentQueue: string[] = [],
-  now = Date.now()
+  now = Date.now(),
+  deckIdFilter?: string
 ): SRSStats {
-  const totalCount = allCardIds.length;
+  let targetItems = allCardIdsOrCards;
+
+  if (deckIdFilter) {
+    targetItems = targetItems.filter((item) => {
+      if (typeof item === 'object' && item !== null) {
+        if (item.deckId === deckIdFilter) return true;
+        const lower = item.level?.toLowerCase();
+        if (deckIdFilter === lower || deckIdFilter === item.level || deckIdFilter === `elzup_${lower}`) return true;
+        return false;
+      }
+      return true;
+    });
+  }
+
+  const ids = targetItems.map((item) => (typeof item === 'object' && item !== null ? item.id : String(item)));
+  const totalCount = ids.length;
   let masteredCount = 0;
   let mediumCount = 0;
   let hardCount = 0;
   let dueTodayCount = 0;
 
-  for (const id of allCardIds) {
+  for (const id of ids) {
     const cardKey = String(id);
     const p = progressMap[cardKey] || progressMap[id];
     const level = p ? (p.srsLevel ?? p.level ?? 1) : 1;
@@ -870,11 +951,37 @@ export function saveProgressToStorage(
 export const saveProgress = saveProgressToStorage;
 
 export const ACTIVE_SESSION_STORAGE_KEY = 'jlpt_active_session_v1';
+export const SELECTED_DECKS_STORAGE_KEY = 'jlpt_app_selected_decks';
+
+export function loadSelectedDeckIdsFromStorage(defaultDecks: string[] = ['elzup_n4', 'elzup_n5']): string[] {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return defaultDecks;
+    const raw = window.localStorage.getItem(SELECTED_DECKS_STORAGE_KEY);
+    if (!raw) return defaultDecks;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed;
+    }
+  } catch (err) {
+    console.warn('Failed to load selected deck IDs from localStorage:', err);
+  }
+  return defaultDecks;
+}
+
+export function saveSelectedDeckIdsToStorage(deckIds: string[]): void {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    window.localStorage.setItem(SELECTED_DECKS_STORAGE_KEY, JSON.stringify(deckIds));
+  } catch (err) {
+    console.warn('Failed to save selected deck IDs to localStorage:', err);
+  }
+}
 
 export interface ActiveSessionState {
   version: 1;
   primaryMode: 'learn' | 'review' | 'quiz';
   studyMode: StudyMode;
+  selectedDeckIds?: string[];
   batchIndex: number;
   currentCardIndex: number;
   queueCardIds: string[];

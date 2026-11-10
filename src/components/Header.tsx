@@ -1,7 +1,7 @@
-import React from 'react';
-import { RotateCcw, Sun, Moon, BookOpen, CheckCircle2, BookMarked, RefreshCw, Gamepad2 } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { RotateCcw, Sun, Moon, BookOpen, CheckCircle2, BookMarked, RefreshCw, Gamepad2, Layers } from 'lucide-react';
 import { SRSStats } from '../utils/srs';
-import { StudyMode } from '../data/vocabTypes';
+import { StudyMode, DeckMetadata } from '../data/vocabTypes';
 import { PWAInstallButton } from './PWAInstallButton';
 
 export type AppPrimaryMode = 'learn' | 'review' | 'quiz';
@@ -10,12 +10,15 @@ interface HeaderProps {
   stats: SRSStats;
   primaryMode: AppPrimaryMode;
   onSelectPrimaryMode: (mode: AppPrimaryMode) => void;
-  currentMode: StudyMode;
-  onSelectMode: (mode: StudyMode) => void;
-  syncStatusMessage: string;
-  batchNumber: number;
-  batchTotal: number;
-  batchRemaining: number;
+  selectedDeckIds?: string[];
+  availableDecks?: DeckMetadata[];
+  onOpenDeckChooser?: () => void;
+  currentMode?: StudyMode;
+  onSelectMode?: (mode: StudyMode) => void;
+  syncStatusMessage?: string;
+  batchNumber?: number;
+  batchTotal?: number;
+  batchRemaining?: number;
   dueReviewCount?: number;
   isDarkMode: boolean;
   onToggleDarkMode: () => void;
@@ -28,7 +31,10 @@ export const Header: React.FC<HeaderProps> = ({
   stats,
   primaryMode,
   onSelectPrimaryMode,
-  currentMode,
+  selectedDeckIds = ['elzup_n4', 'elzup_n5'],
+  availableDecks = [],
+  onOpenDeckChooser,
+  currentMode = 'all',
   onSelectMode,
   dueReviewCount = 0,
   isDarkMode,
@@ -41,7 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
   const BrandAndModeSwitcher = (
     <div className="flex items-center gap-1 xs:gap-1.5 min-w-0 flex-shrink-1">
       {/* Brand Icon: Kanji '語' */}
-      <div className="w-6.5 h-6.5 xs:w-7.5 xs:h-7.5 rounded-lg bg-[#C84B31] text-white flex items-center justify-center font-bold text-xs xs:text-sm shadow-2xs font-jp shrink-0">
+      <div className="w-7 h-7 xs:w-8 xs:h-8 rounded-lg bg-[#C84B31] text-white flex items-center justify-center font-bold text-sm xs:text-base shadow-2xs font-jp shrink-0">
         語
       </div>
 
@@ -49,31 +55,31 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center p-0.5 rounded-lg bg-[#F2EFE9] dark:bg-[#1E1B18] border border-[#DED7CD] dark:border-[#38312B] min-w-0 shrink-1">
         <button
           onClick={() => onSelectPrimaryMode('learn')}
-          className={`flex items-center gap-1 px-1.5 xs:px-2 py-0.5 text-[11px] font-bold rounded-md transition-all cursor-pointer min-w-0 shrink-1 ${
+          className={`flex items-center gap-1.5 px-2 xs:px-2.5 py-1 text-[13px] font-bold rounded-md transition-all cursor-pointer min-w-0 shrink-1 ${
             primaryMode === 'learn'
               ? 'bg-[#6B7F5E] text-white shadow-2xs'
               : 'text-[#736B63] dark:text-[#A59E95] hover:text-[#2B2B2B] dark:hover:text-[#E6E1DA]'
           }`}
           title="Learn Mode (25-card interleaved batches)"
         >
-          <BookMarked className="w-3 h-3 shrink-0" />
+          <BookMarked className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">Learn</span>
         </button>
 
         <button
           onClick={() => onSelectPrimaryMode('review')}
-          className={`flex items-center gap-1 px-1.5 xs:px-2 py-0.5 text-[11px] font-bold rounded-md transition-all cursor-pointer min-w-0 shrink-1 ${
+          className={`flex items-center gap-1.5 px-2 xs:px-2.5 py-1 text-[13px] font-bold rounded-md transition-all cursor-pointer min-w-0 shrink-1 ${
             primaryMode === 'review'
               ? 'bg-[#6B7F5E] text-white shadow-2xs'
               : 'text-[#736B63] dark:text-[#A59E95] hover:text-[#2B2B2B] dark:hover:text-[#E6E1DA]'
           }`}
           title="Review Mode (SRS urgency sorted previously studied words)"
         >
-          <RefreshCw className="w-3 h-3 shrink-0" />
+          <RefreshCw className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">Review</span>
           {dueReviewCount > 0 && (
             <span
-              className={`text-[9px] px-1 py-0 rounded-full font-mono shrink-0 ${
+              className={`text-[11px] px-1.5 py-0.2 rounded-full font-mono font-bold shrink-0 ${
                 primaryMode === 'review'
                   ? 'bg-white/25 text-white'
                   : 'bg-[#C84B31] text-white'
@@ -86,63 +92,58 @@ export const Header: React.FC<HeaderProps> = ({
 
         <button
           onClick={() => onSelectPrimaryMode('quiz')}
-          className={`flex items-center gap-1 px-1.5 xs:px-2 py-0.5 text-[11px] font-bold rounded-md transition-all cursor-pointer min-w-0 shrink-1 ${
+          className={`flex items-center gap-1.5 px-2 xs:px-2.5 py-1 text-[13px] font-bold rounded-md transition-all cursor-pointer min-w-0 shrink-1 ${
             primaryMode === 'quiz'
               ? 'bg-[#6B7F5E] text-white shadow-2xs'
               : 'text-[#736B63] dark:text-[#A59E95] hover:text-[#2B2B2B] dark:hover:text-[#E6E1DA]'
           }`}
           title="Matching Quiz (Duolingo-style 5-word rapid matching)"
         >
-          <Gamepad2 className="w-3 h-3 shrink-0" />
+          <Gamepad2 className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">Quiz</span>
         </button>
       </div>
     </div>
   );
 
-  // Reusable Level Sub-filter tabs (All | N4 | N5)
-  const LevelFilterTabs = (
-    <div className="flex items-center p-0.5 rounded-lg bg-[#F2EFE9] dark:bg-[#1E1B18] border border-[#DED7CD] dark:border-[#38312B] shrink-0">
-      <button
-        onClick={() => onSelectMode('all')}
-        className={`px-2 xs:px-2.5 py-0.5 text-[11px] font-bold rounded-md transition-all cursor-pointer shrink-0 ${
-          currentMode === 'all'
-            ? 'bg-[#4A6B53] text-white shadow-2xs'
-            : 'text-[#736B63] dark:text-[#A59E95] hover:text-[#2B2B2B] dark:hover:text-[#E6E1DA]'
-        }`}
-      >
-        All
-      </button>
-      <button
-        onClick={() => onSelectMode('n4')}
-        className={`px-2 xs:px-2.5 py-0.5 text-[11px] font-bold rounded-md transition-all cursor-pointer shrink-0 ${
-          currentMode === 'n4'
-            ? 'bg-[#4A6B53] text-white shadow-2xs'
-            : 'text-[#736B63] dark:text-[#A59E95] hover:text-[#2B2B2B] dark:hover:text-[#E6E1DA]'
-        }`}
-      >
-        N4
-      </button>
-      <button
-        onClick={() => onSelectMode('n5')}
-        className={`px-2 xs:px-2.5 py-0.5 text-[11px] font-bold rounded-md transition-all cursor-pointer shrink-0 ${
-          currentMode === 'n5'
-            ? 'bg-[#4A6B53] text-white shadow-2xs'
-            : 'text-[#736B63] dark:text-[#A59E95] hover:text-[#2B2B2B] dark:hover:text-[#E6E1DA]'
-        }`}
-      >
-        N5
-      </button>
-    </div>
+  // Computed label for "Choose Decks" button
+  const deckButtonLabel = useMemo(() => {
+    if (availableDecks.length > 0 && selectedDeckIds.length === availableDecks.length) {
+      return `All Decks (${selectedDeckIds.length})`;
+    }
+    if (selectedDeckIds.length === 0) {
+      return 'Choose Decks';
+    }
+    const names = selectedDeckIds.map((id) => {
+      const match = availableDecks.find((d) => d.id === id);
+      if (match) return match.level || match.name;
+      if (id.includes('n4')) return 'N4';
+      if (id.includes('n5')) return 'N5';
+      return id;
+    });
+    return names.join(' + ');
+  }, [selectedDeckIds, availableDecks]);
+
+  // Reusable Choose Decks Button
+  const ChooseDecksButton = (
+    <button
+      onClick={onOpenDeckChooser}
+      className="flex items-center gap-1.5 px-2.5 xs:px-3 py-1 text-[13px] font-bold rounded-lg bg-[#F2EFE9] dark:bg-[#1E1B18] border border-[#DED7CD] dark:border-[#38312B] text-[#2B2B2B] dark:text-[#E6E1DA] hover:bg-[#EAE4DC] dark:hover:bg-[#28231F] hover:border-[#C2BAAF] dark:hover:border-[#524942] transition-all cursor-pointer shrink-0 shadow-2xs"
+      title="Choose active decks (click to configure)"
+      aria-label="Choose Decks"
+    >
+      <Layers className="w-3.5 h-3.5 text-[#6B7F5E] dark:text-[#8BAF95] shrink-0" />
+      <span className="truncate max-w-[130px] sm:max-w-none">{deckButtonLabel}</span>
+    </button>
   );
 
   // Reusable Mastered Stats Pill
   const StatsPill = (
     <div
-      className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#EDF3EF] dark:bg-[#202E24] text-[#4A6B53] dark:text-[#8BAF95] border border-[#D1E1D6] dark:border-[#314838] text-[11px] font-bold shrink-0"
+      className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#EDF3EF] dark:bg-[#202E24] text-[#4A6B53] dark:text-[#8BAF95] border border-[#D1E1D6] dark:border-[#314838] text-[13px] font-bold shrink-0"
       title="Total cards mastered in this study mode"
     >
-      <CheckCircle2 className="w-3 h-3 text-[#4A6B53] dark:text-[#8BAF95] shrink-0" />
+      <CheckCircle2 className="w-3.5 h-3.5 text-[#4A6B53] dark:text-[#8BAF95] shrink-0" />
       <span className="tabular-nums">
         {stats.masteredCount}/{stats.totalCount}
       </span>
@@ -193,25 +194,25 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header
-      className="w-full max-w-full flex-shrink-0 z-30 bg-[#FAF8F5]/95 dark:bg-[#28231F]/95 backdrop-blur-md border-b border-[#DED7CD] dark:border-[#38312B] transition-colors py-1.5 px-3 xs:py-1 xs:px-4 box-border"
-      style={{ paddingTop: 'env(safe-area-inset-top, 16px)' }}
+      className="w-full max-w-full flex-shrink-0 z-30 bg-[#FAF8F5] dark:bg-[#1F1D1B] border-b border-[#DED7CD] dark:border-[#2C2724] transition-colors py-2 px-3 xs:py-2.5 xs:px-4 box-border"
+      style={{ paddingTop: 'max(16px, env(safe-area-inset-top))' }}
     >
       {/* =========================================================================
           RESPONSIVE MOBILE LAYOUT (< 480px / max-xs)
-          Two compact rows to eliminate horizontal header overflow:
-          - Row 1: Logo ('語') + Mode Switcher ('Learn'/'Review') on left, Settings/Theme/Reset on right
-          - Row 2: Level Filter tabs ('All'/'N4'/'N5') and SRS Stats Pill ('0/1396') justified across width
+          Two rows with comfortable vertical spacing to eliminate clutter & overlap:
+          - Row 1: Logo ('語') + Mode Switcher ('Learn'/'Review'/'Quiz') on left, Settings/Theme/Reset on right
+          - Row 2: Level Filter tabs ('All'/'N4'/'N5') and SRS Stats Pill ('0/1396')
          ========================================================================= */}
-      <div className="w-full flex flex-col gap-1.5 xs:hidden box-border max-w-full">
+      <div className="w-full flex flex-col gap-3 xs:hidden box-border max-w-full">
         {/* Top Row: Left logo & mode switcher, Right settings/theme icons */}
         <div className="w-full flex items-center justify-between gap-1.5 min-w-0 box-border">
           {BrandAndModeSwitcher}
           {ActionIcons}
         </div>
 
-        {/* Bottom Row: Level Filter tabs and SRS Stats Pill */}
-        <div className="w-full flex items-center justify-between gap-2 min-w-0 box-border pt-1 border-t border-[#DED7CD]/40 dark:border-[#38312B]/40">
-          {LevelFilterTabs}
+        {/* Bottom Row: Choose Decks button and SRS Stats Pill with 12px vertical separation */}
+        <div className="w-full flex items-center justify-between gap-2 min-w-0 box-border pt-2 border-t border-[#DED7CD]/50 dark:border-[#2C2724]">
+          {ChooseDecksButton}
           {StatsPill}
         </div>
       </div>
@@ -224,8 +225,8 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Left: Brand & Primary Mode Selector */}
         {BrandAndModeSwitcher}
 
-        {/* Center: Level Sub-filter (All | N4 | N5) */}
-        {LevelFilterTabs}
+        {/* Center: Choose Decks Button */}
+        {ChooseDecksButton}
 
         {/* Right: Mastered Stats Pill & Action Buttons */}
         <div className="flex items-center gap-1.5 shrink-0">

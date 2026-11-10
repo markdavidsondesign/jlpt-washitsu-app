@@ -112,11 +112,11 @@ export const SessionComplete: React.FC<SessionCompleteProps> = ({
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#6B7F5E] dark:text-[#A6C09C]">
+              <span className="text-xs sm:text-[13px] font-bold uppercase tracking-wider text-[#6B7F5E] dark:text-[#A6C09C]">
                 {isReviewMode ? 'Review Mode Complete' : '25-Card Batch Cleared'}
               </span>
               {isPerfectSet && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold font-jp bg-[#FBF0EE] text-[#C84B31] border border-[#F2D1CA] dark:bg-[#36221D] dark:text-[#E88673] dark:border-[#522F26]">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold font-jp bg-[#FBF0EE] text-[#C84B31] border border-[#F2D1CA] dark:bg-[#36221D] dark:text-[#E88673] dark:border-[#522F26]">
                   <span>完璧</span>
                   <span>Perfect Set!</span>
                 </span>
@@ -134,27 +134,27 @@ export const SessionComplete: React.FC<SessionCompleteProps> = ({
 
         {/* Perfect Set Seal Banner (Rendered if 0 cards swiped left) */}
         {isPerfectSet ? (
-          <div className="mb-3 p-2.5 rounded-xl bg-[#F7F4EC] dark:bg-[#332E23] border border-[#E8DFC9] dark:border-[#504734] flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#C84B31] text-white flex items-center justify-center font-jp font-bold text-sm shrink-0 shadow-xs">
+          <div className="mb-3 p-3 rounded-xl bg-[#F7F4EC] dark:bg-[#332E23] border border-[#E8DFC9] dark:border-[#504734] flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-[#C84B31] text-white flex items-center justify-center font-jp font-bold text-sm shrink-0 shadow-xs">
               完璧
             </div>
-            <div className="text-xs">
+            <div className="text-xs sm:text-[13px]">
               <p className="font-bold text-[#2B2B2B] dark:text-[#E6E1DA]">
                 Flawless 100% First Pass!
               </p>
-              <p className="text-[#736B63] dark:text-[#A59E95] text-[11px]">
+              <p className="text-[#736B63] dark:text-[#A59E95] text-[13px] font-medium">
                 All {effectiveBatchCards} cards mastered without needing any retries.
               </p>
             </div>
           </div>
         ) : isMiniDeckCleared ? (
-          <div className="mb-3 p-2.5 rounded-xl bg-[#EDF3EF] dark:bg-[#202E24] border border-[#D1E1D6] dark:border-[#314838] flex items-center gap-2.5">
+          <div className="mb-3 p-3 rounded-xl bg-[#EDF3EF] dark:bg-[#202E24] border border-[#D1E1D6] dark:border-[#314838] flex items-center gap-2.5">
             <CheckCircle2 className="w-5 h-5 text-[#4A6B53] dark:text-[#8BAF95] shrink-0" />
-            <div className="text-xs">
+            <div className="text-xs sm:text-[13px]">
               <p className="font-bold text-[#4A6B53] dark:text-[#8BAF95]">
                 Missed Words Mastered!
               </p>
-              <p className="text-[#736B63] dark:text-[#A59E95] text-[11px]">
+              <p className="text-[#736B63] dark:text-[#A59E95] text-[13px] font-medium">
                 All previously missed cards have now reached mastery.
               </p>
             </div>
@@ -162,12 +162,12 @@ export const SessionComplete: React.FC<SessionCompleteProps> = ({
         ) : null}
 
         {/* Dashboard Section 1: Accuracy Breakdown */}
-        <div className="p-3 rounded-xl bg-[#F2EFE9] dark:bg-[#1E1B18]/70 border border-[#DED7CD] dark:border-[#38312B] mb-3">
+        <div className="p-3.5 rounded-xl bg-[#F2EFE9] dark:bg-[#1E1B18]/70 border border-[#DED7CD] dark:border-[#38312B] mb-3">
           <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
-            <span className="text-[#736B63] dark:text-[#A59E95] uppercase tracking-wider text-[10px]">
+            <span className="text-[#736B63] dark:text-[#A59E95] uppercase tracking-wider text-xs font-bold">
               Accuracy Breakdown
             </span>
-            <span className="text-[#2B2B2B] dark:text-[#E6E1DA] font-bold">
+            <span className="text-[#2B2B2B] dark:text-[#E6E1DA] font-bold text-sm">
               {firstPassPercentage}% First Pass
             </span>
           </div>
@@ -187,22 +187,21 @@ export const SessionComplete: React.FC<SessionCompleteProps> = ({
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="flex items-center justify-between p-1.5 rounded-lg bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD]/70 dark:border-[#38312B]">
-              <span className="text-[#4A6B53] dark:text-[#8BAF95] font-medium text-[11px] flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#4A6B53]" />
+            <div className="flex items-center justify-between p-2 rounded-lg bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD]/70 dark:border-[#38312B]">
+              <span className="text-[#4A6B53] dark:text-[#8BAF95] font-semibold text-[13px] flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#4A6B53]" />
                 First Pass
               </span>
-              <span className="font-bold text-[#2B2B2B] dark:text-[#E6E1DA] tabular-nums text-xs">
+              <span className="font-bold text-[#2B2B2B] dark:text-[#E6E1DA] tabular-nums text-sm">
                 {firstPassCount} / {effectiveBatchCards}
               </span>
             </div>
-
-            <div className="flex items-center justify-between p-1.5 rounded-lg bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD]/70 dark:border-[#38312B]">
-              <span className="text-[#C84B31] dark:text-[#E88673] font-medium text-[11px] flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#C84B31]" />
+            <div className="flex items-center justify-between p-2 rounded-lg bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD]/70 dark:border-[#38312B]">
+              <span className="text-[#C84B31] dark:text-[#E88673] font-semibold text-[13px] flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-[#C84B31]" />
                 Retries Needed
               </span>
-              <span className="font-bold text-[#2B2B2B] dark:text-[#E6E1DA] tabular-nums text-xs">
+              <span className="font-bold text-[#2B2B2B] dark:text-[#E6E1DA] tabular-nums text-sm">
                 {retryCount}
               </span>
             </div>
@@ -210,12 +209,12 @@ export const SessionComplete: React.FC<SessionCompleteProps> = ({
         </div>
 
         {/* Dashboard Section 2: Overall JLPT Mastery from LocalStorage */}
-        <div className="p-3 rounded-xl bg-[#F2EFE9] dark:bg-[#1E1B18]/70 border border-[#DED7CD] dark:border-[#38312B] mb-3.5">
-          <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className="text-[#736B63] dark:text-[#A59E95] uppercase tracking-wider text-[10px] font-semibold">
+        <div className="p-3.5 rounded-xl bg-[#F2EFE9] dark:bg-[#1E1B18]/70 border border-[#DED7CD] dark:border-[#38312B] mb-3.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[#736B63] dark:text-[#A59E95] uppercase tracking-wider text-xs font-bold">
               Overall Deck Mastery
             </span>
-            <span className="text-[#4A6B53] dark:text-[#8BAF95] font-bold text-xs tabular-nums">
+            <span className="text-[#4A6B53] dark:text-[#8BAF95] font-bold text-sm tabular-nums">
               {stats.masteredCount} / {stats.totalCount} ({stats.masteryPercentage}%)
             </span>
           </div>
@@ -228,34 +227,34 @@ export const SessionComplete: React.FC<SessionCompleteProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-1.5 text-center text-[10px]">
-            <div className="p-1 rounded bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD]/60 dark:border-[#38312B]">
-              <span className="text-[#C84B31] dark:text-[#E88673] font-bold block">
+          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+            <div className="p-1.5 rounded-lg bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD]/60 dark:border-[#38312B]">
+              <span className="text-[#C84B31] dark:text-[#E88673] font-bold text-sm block">
                 {stats.hardCount}
               </span>
-              <span className="text-[#736B63] dark:text-[#A59E95]">Level 1</span>
+              <span className="text-[#736B63] dark:text-[#A59E95] text-[13px] font-medium">Level 1</span>
             </div>
-            <div className="p-1 rounded bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD]/60 dark:border-[#38312B]">
-              <span className="text-[#8C6D3B] dark:text-[#DEC88E] font-bold block">
+            <div className="p-1.5 rounded-lg bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD]/60 dark:border-[#38312B]">
+              <span className="text-[#8C6D3B] dark:text-[#DEC88E] font-bold text-sm block">
                 {stats.mediumCount}
               </span>
-              <span className="text-[#736B63] dark:text-[#A59E95]">Level 2</span>
+              <span className="text-[#736B63] dark:text-[#A59E95] text-[13px] font-medium">Level 2</span>
             </div>
-            <div className="p-1 rounded bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD]/60 dark:border-[#38312B]">
-              <span className="text-[#4A6B53] dark:text-[#8BAF95] font-bold block">
+            <div className="p-1.5 rounded-lg bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD]/60 dark:border-[#38312B]">
+              <span className="text-[#4A6B53] dark:text-[#8BAF95] font-bold text-sm block">
                 {stats.masteredCount}
               </span>
-              <span className="text-[#736B63] dark:text-[#A59E95]">Mastered</span>
+              <span className="text-[#736B63] dark:text-[#A59E95] text-[13px] font-medium">Mastered</span>
             </div>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5">
           {/* Primary Action: Start Next 25 Cards in Matcha Green (#6B7F5E) */}
           <button
             onClick={onNextBatch}
-            className="w-full py-2.5 sm:py-3 px-4 rounded-xl bg-[#6B7F5E] hover:bg-[#5A6D4E] text-white font-semibold text-xs sm:text-sm transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
+            className="w-full py-3 px-4 rounded-xl bg-[#6B7F5E] hover:bg-[#5A6D4E] text-white font-semibold text-sm transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
           >
             <span>Start Next 25 Cards</span>
             <ArrowRight className="w-4 h-4 text-white/90" />
@@ -265,7 +264,7 @@ export const SessionComplete: React.FC<SessionCompleteProps> = ({
           {onStartQuiz && (
             <button
               onClick={onStartQuiz}
-              className="w-full py-2.5 px-4 rounded-xl bg-[#F0F3ED] dark:bg-[#242F22] hover:bg-[#E5ECE0] dark:hover:bg-[#2C3B29] text-[#4A6B53] dark:text-[#A6C09C] border border-[#CAD8C5] dark:border-[#384A33] font-semibold text-xs sm:text-sm transition-colors shadow-2xs cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
+              className="w-full py-3 px-4 rounded-xl bg-[#F0F3ED] dark:bg-[#242F22] hover:bg-[#E5ECE0] dark:hover:bg-[#2C3B29] text-[#4A6B53] dark:text-[#A6C09C] border border-[#CAD8C5] dark:border-[#384A33] font-semibold text-sm transition-colors shadow-2xs cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
             >
               <Gamepad2 className="w-4 h-4 text-[#6B7F5E]" />
               <span>Practice 5-Word Matching Quiz</span>
@@ -276,7 +275,7 @@ export const SessionComplete: React.FC<SessionCompleteProps> = ({
           {missedCardIds.length > 0 && onReviewMissed && (
             <button
               onClick={onReviewMissed}
-              className="w-full py-2.5 px-4 rounded-xl bg-[#C84B31] hover:bg-[#B23E26] text-white font-semibold text-xs sm:text-sm transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
+              className="w-full py-3 px-4 rounded-xl bg-[#C84B31] hover:bg-[#B23E26] text-white font-semibold text-sm transition-colors shadow-sm cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
             >
               <AlertCircle className="w-4 h-4 text-white/90" />
               <span>Review Missed Words ({missedCardIds.length})</span>
@@ -289,15 +288,15 @@ export const SessionComplete: React.FC<SessionCompleteProps> = ({
           {dueCount > 0 && onReviewDue ? (
             <button
               onClick={onReviewDue}
-              className="w-full py-2.5 px-3.5 rounded-xl bg-[#F7F4EC] dark:bg-[#2B261F] hover:bg-[#EFEAD9] dark:hover:bg-[#383128] text-[#8C6D3B] dark:text-[#DEC88E] border border-[#E8DFC9] dark:border-[#504734] font-semibold text-xs sm:text-sm transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
+              className="w-full py-3 px-3.5 rounded-xl bg-[#F7F4EC] dark:bg-[#2B261F] hover:bg-[#EFEAD9] dark:hover:bg-[#383128] text-[#8C6D3B] dark:text-[#DEC88E] border border-[#E8DFC9] dark:border-[#504734] font-semibold text-sm transition-all shadow-2xs cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
               title={`Review ${dueCount} overdue cards`}
             >
               <Sparkles className="w-4 h-4 text-[#8C6D3B] dark:text-[#DEC88E] shrink-0" />
               <span>Review Due Items ({dueCount})</span>
             </button>
           ) : (
-            <div className="w-full py-1.5 px-3 rounded-lg bg-[#FAF8F5]/60 dark:bg-[#28231F]/60 border border-[#DED7CD]/50 dark:border-[#38312B]/50 flex items-center justify-center gap-1.5 text-[11px] text-[#736B63] dark:text-[#A59E95] font-medium">
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#4A6B53] dark:text-[#8BAF95] shrink-0" />
+            <div className="w-full py-2 px-3 rounded-lg bg-[#FAF8F5]/60 dark:bg-[#28231F]/60 border border-[#DED7CD]/50 dark:border-[#38312B]/50 flex items-center justify-center gap-1.5 text-[13px] text-[#736B63] dark:text-[#A59E95] font-medium">
+              <CheckCircle2 className="w-4 h-4 text-[#4A6B53] dark:text-[#8BAF95] shrink-0" />
               <span>0 Reviews Due · Spaced Repetition Up to Date</span>
             </div>
           )}
@@ -306,9 +305,9 @@ export const SessionComplete: React.FC<SessionCompleteProps> = ({
             {onRestartMode && (
               <button
                 onClick={onRestartMode}
-                className="flex-1 py-1.5 px-2.5 rounded-lg border border-[#DED7CD] dark:border-[#38312B] text-[#736B63] dark:text-[#A59E95] hover:bg-[#EAE4DC] dark:hover:bg-[#342D27] font-medium text-[11px] transition-colors cursor-pointer flex items-center justify-center gap-1"
+                className="flex-1 py-2 px-3 rounded-lg border border-[#DED7CD] dark:border-[#38312B] text-[#736B63] dark:text-[#A59E95] hover:bg-[#EAE4DC] dark:hover:bg-[#342D27] font-semibold text-[13px] transition-colors cursor-pointer flex items-center justify-center gap-1.5"
               >
-                <RotateCcw className="w-3 h-3" />
+                <RotateCcw className="w-3.5 h-3.5" />
                 <span>Restart Batch</span>
               </button>
             )}
@@ -316,9 +315,9 @@ export const SessionComplete: React.FC<SessionCompleteProps> = ({
             {onOpenDeckOverview && (
               <button
                 onClick={onOpenDeckOverview}
-                className="flex-1 py-1.5 px-2.5 rounded-lg border border-[#DED7CD] dark:border-[#38312B] text-[#736B63] dark:text-[#A59E95] hover:bg-[#EAE4DC] dark:hover:bg-[#342D27] font-medium text-[11px] transition-colors cursor-pointer flex items-center justify-center gap-1"
+                className="flex-1 py-2 px-3 rounded-lg border border-[#DED7CD] dark:border-[#38312B] text-[#736B63] dark:text-[#A59E95] hover:bg-[#EAE4DC] dark:hover:bg-[#342D27] font-semibold text-[13px] transition-colors cursor-pointer flex items-center justify-center gap-1.5"
               >
-                <BookOpen className="w-3 h-3" />
+                <BookOpen className="w-3.5 h-3.5" />
                 <span>Browse Deck ({totalCardsInMode})</span>
               </button>
             )}

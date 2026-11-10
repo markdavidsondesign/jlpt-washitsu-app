@@ -417,7 +417,7 @@ export const MatchingQuiz: React.FC<MatchingQuizProps> = ({
           {/* Compact Furigana Toggle Button */}
           <button
             onClick={toggleFurigana}
-            className={`flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer border shrink-0 ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] font-bold transition-all cursor-pointer border shrink-0 ${
               showFurigana
                 ? 'bg-[#F0F3ED] dark:bg-[#242F22] text-[#4A6B53] dark:text-[#8BAF95] border-[#CAD8C5] dark:border-[#384A33] shadow-2xs'
                 : 'bg-transparent text-[#736B63] dark:text-[#A59E95] border-[#DED7CD] dark:border-[#38312B] hover:text-[#2B2B2B] dark:hover:text-[#E6E1DA]'
@@ -425,41 +425,41 @@ export const MatchingQuiz: React.FC<MatchingQuizProps> = ({
             title={showFurigana ? 'Furigana ON (click to hide readings)' : 'Furigana OFF (click to test raw kanji)'}
             aria-label="Toggle Furigana reading hints"
           >
-            <span className="font-jp text-xs">あ/漢</span>
-            <span className="text-[10px] font-mono tracking-tight">{showFurigana ? 'ON' : 'OFF'}</span>
+            <span className="font-jp text-[13px] font-bold">あ/漢</span>
+            <span className="text-xs font-mono font-bold tracking-tight">{showFurigana ? 'ON' : 'OFF'}</span>
           </button>
         </div>
 
         {/* Round Progress Indicators (5 segments) */}
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <div className="flex items-center gap-0.5 sm:gap-1">
             {Array.from({ length: ROUNDS_TOTAL }).map((_, idx) => (
               <span
                 key={idx}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
+                className={`h-2 rounded-full transition-all duration-300 ${
                   idx < roundIndex
-                    ? 'w-3 sm:w-4 bg-[#6B7F5E]'
+                    ? 'w-3.5 sm:w-4.5 bg-[#6B7F5E]'
                     : idx === roundIndex
-                    ? 'w-5 sm:w-6 bg-[#6B7F5E] shadow-xs'
-                    : 'w-1.5 sm:w-2 bg-[#DED7CD] dark:bg-[#38312B]'
+                    ? 'w-6 sm:w-7 bg-[#6B7F5E] shadow-xs'
+                    : 'w-2 sm:w-2.5 bg-[#DED7CD] dark:bg-[#38312B]'
                 }`}
                 title={`Round ${idx + 1}`}
               />
             ))}
           </div>
-          <span className="text-[11px] font-bold text-[#736B63] dark:text-[#A59E95] tabular-nums ml-0.5">
+          <span className="text-[13px] font-bold text-[#736B63] dark:text-[#A59E95] tabular-nums ml-0.5">
             {roundIndex + 1}/{ROUNDS_TOTAL}
           </span>
         </div>
 
         {/* Live Match & Timer HUD */}
-        <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] font-medium text-[#736B63] dark:text-[#A59E95] tabular-nums shrink-0">
+        <div className="flex items-center gap-2 text-[13px] font-semibold text-[#736B63] dark:text-[#A59E95] tabular-nums shrink-0">
           <div className="flex items-center gap-1 text-[#4A6B53] dark:text-[#8BAF95] font-semibold">
-            <CheckCircle2 className="w-3 h-3" />
+            <CheckCircle2 className="w-3.5 h-3.5" />
             <span>{totalSolvedCount}/{TOTAL_WORDS}</span>
           </div>
           <div className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
+            <Clock className="w-3.5 h-3.5" />
             <span>{formatTime(elapsedSeconds)}</span>
           </div>
         </div>
@@ -471,7 +471,7 @@ export const MatchingQuiz: React.FC<MatchingQuizProps> = ({
           {/* Card-Sized Outer Shell matching primary flashcard container width & washitsu aesthetic */}
           <div className="w-full max-w-[440px] mx-auto rounded-2xl sm:rounded-3xl bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD] dark:border-[#38312B] shadow-lg shadow-[#332C27]/8 dark:shadow-black/40 p-3.5 sm:p-4.5 flex flex-col justify-center box-border">
             {/* Subtle Column Headers */}
-            <div className="grid grid-cols-2 gap-2.5 sm:gap-3 mb-2 px-1 text-[10px] uppercase tracking-wider font-bold text-[#736B63] dark:text-[#A59E95] shrink-0">
+            <div className="grid grid-cols-2 gap-2.5 sm:gap-3 mb-2 px-1 text-xs uppercase tracking-wider font-bold text-[#736B63] dark:text-[#A59E95] shrink-0">
               <span className="text-left">Japanese Target</span>
               <span className="text-left">English Meaning</span>
             </div>
@@ -491,7 +491,7 @@ export const MatchingQuiz: React.FC<MatchingQuizProps> = ({
                       key={tile.id}
                       onClick={() => handleTileClick(tile)}
                       disabled={tile.disabled || isSolved || isMatched || isLocked}
-                      className={`min-h-[50px] w-full px-3 py-2 sm:py-2.5 rounded-xl text-left border flex flex-col justify-center transition-all duration-150 relative overflow-hidden select-none shrink-0 ${
+                      className={`min-h-[52px] w-full px-3 py-2 sm:py-2.5 rounded-xl text-left border flex flex-col justify-center transition-all duration-150 relative overflow-hidden select-none shrink-0 ${
                         isSolved
                           ? 'opacity-30 pointer-events-none border-[#DED7CD]/60 dark:border-[#38312B]/60 bg-[#EFECE6]/50 dark:bg-[#24201D]/50 text-[#736B63] dark:text-[#A59E95] grayscale cursor-default'
                           : isError
@@ -504,7 +504,7 @@ export const MatchingQuiz: React.FC<MatchingQuizProps> = ({
                       }`}
                     >
                       {showFurigana && tile.subText && (
-                        <span className="text-[10px] sm:text-[11px] leading-tight font-jp text-[#736B63] dark:text-[#A59E95] truncate">
+                        <span className="text-[13px] sm:text-sm leading-tight font-jp font-semibold text-[#736B63] dark:text-[#A59E95] truncate">
                           {tile.subText}
                         </span>
                       )}
@@ -529,7 +529,7 @@ export const MatchingQuiz: React.FC<MatchingQuizProps> = ({
                       key={tile.id}
                       onClick={() => handleTileClick(tile)}
                       disabled={tile.disabled || isSolved || isMatched || isLocked}
-                      className={`min-h-[50px] w-full px-3 py-2 sm:py-2.5 rounded-xl text-left border flex flex-col justify-center transition-all duration-150 relative overflow-hidden select-none shrink-0 ${
+                      className={`min-h-[52px] w-full px-3 py-2 sm:py-2.5 rounded-xl text-left border flex flex-col justify-center transition-all duration-150 relative overflow-hidden select-none shrink-0 ${
                         isSolved
                           ? 'opacity-30 pointer-events-none border-[#DED7CD]/60 dark:border-[#38312B]/60 bg-[#EFECE6]/50 dark:bg-[#24201D]/50 text-[#736B63] dark:text-[#A59E95] grayscale cursor-default'
                           : isError
@@ -541,7 +541,7 @@ export const MatchingQuiz: React.FC<MatchingQuizProps> = ({
                           : 'border-[#DED7CD] dark:border-[#38312B] bg-white dark:bg-[#1E1B18] hover:border-[#6B7F5E]/60 hover:bg-[#F6F3EC] dark:hover:bg-[#2E2824] text-[#2B2B2B] dark:text-[#E6E1DA] shadow-2xs cursor-pointer active:scale-[0.98]'
                       }`}
                     >
-                      <span className="font-semibold text-xs sm:text-sm leading-snug line-clamp-2">
+                      <span className="font-semibold text-[13px] sm:text-sm leading-snug line-clamp-2">
                         {tile.text}
                       </span>
                     </button>
@@ -564,15 +564,15 @@ export const MatchingQuiz: React.FC<MatchingQuizProps> = ({
             <h2 className="text-xl sm:text-2xl font-bold font-jp text-[#2B2B2B] dark:text-[#E6E1DA]">
               Quiz Session Complete!
             </h2>
-            <p className="text-xs text-[#736B63] dark:text-[#A59E95] mt-1 mb-4">
+            <p className="text-sm text-[#736B63] dark:text-[#A59E95] mt-1.5 mb-4 font-medium">
               You successfully matched all 25 JLPT vocabulary items across 5 rounds.
             </p>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-3 gap-2.5 w-full mb-5">
               <div className="p-3 rounded-xl bg-white dark:bg-[#1E1B18] border border-[#DED7CD] dark:border-[#38312B]">
-                <div className="flex items-center justify-center gap-1 text-[11px] text-[#736B63] dark:text-[#A59E95] font-medium mb-1">
-                  <Clock className="w-3.5 h-3.5 text-[#6B7F5E]" />
+                <div className="flex items-center justify-center gap-1.5 text-[13px] text-[#736B63] dark:text-[#A59E95] font-semibold mb-1">
+                  <Clock className="w-4 h-4 text-[#6B7F5E]" />
                   <span>Time</span>
                 </div>
                 <span className="text-base sm:text-lg font-bold font-mono text-[#2B2B2B] dark:text-[#E6E1DA]">
@@ -581,8 +581,8 @@ export const MatchingQuiz: React.FC<MatchingQuizProps> = ({
               </div>
 
               <div className="p-3 rounded-xl bg-white dark:bg-[#1E1B18] border border-[#DED7CD] dark:border-[#38312B]">
-                <div className="flex items-center justify-center gap-1 text-[11px] text-[#736B63] dark:text-[#A59E95] font-medium mb-1">
-                  <Target className="w-3.5 h-3.5 text-[#C84B31]" />
+                <div className="flex items-center justify-center gap-1.5 text-[13px] text-[#736B63] dark:text-[#A59E95] font-semibold mb-1">
+                  <Target className="w-4 h-4 text-[#C84B31]" />
                   <span>Accuracy</span>
                 </div>
                 <span className="text-base sm:text-lg font-bold font-mono text-[#2B2B2B] dark:text-[#E6E1DA]">
@@ -591,8 +591,8 @@ export const MatchingQuiz: React.FC<MatchingQuizProps> = ({
               </div>
 
               <div className="p-3 rounded-xl bg-white dark:bg-[#1E1B18] border border-[#DED7CD] dark:border-[#38312B]">
-                <div className="flex items-center justify-center gap-1 text-[11px] text-[#736B63] dark:text-[#A59E95] font-medium mb-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#4A6B53]" />
+                <div className="flex items-center justify-center gap-1.5 text-[13px] text-[#736B63] dark:text-[#A59E95] font-semibold mb-1">
+                  <CheckCircle2 className="w-4 h-4 text-[#4A6B53]" />
                   <span>Matched</span>
                 </div>
                 <span className="text-base sm:text-lg font-bold font-mono text-[#2B2B2B] dark:text-[#E6E1DA]">
@@ -602,18 +602,17 @@ export const MatchingQuiz: React.FC<MatchingQuizProps> = ({
             </div>
 
             {/* Action CTAs */}
-            <div className="flex flex-col gap-2 w-full">
+            <div className="flex flex-col gap-2.5 w-full">
               <button
                 onClick={setupSessionPool}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#6B7F5E] hover:bg-[#5A6D4E] text-white font-semibold text-xs sm:text-sm shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
+                className="w-full py-3 px-4 rounded-xl bg-[#6B7F5E] hover:bg-[#5A6D4E] text-white font-semibold text-sm shadow-sm transition-colors cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>Play Another Quiz (25 Words)</span>
               </button>
-
               <button
                 onClick={onExit}
-                className="w-full py-2.5 px-4 rounded-xl border border-[#DED7CD] dark:border-[#38312B] bg-white dark:bg-[#1E1B18] hover:bg-[#EAE4DC] dark:hover:bg-[#342D27] text-[#2B2B2B] dark:text-[#E6E1DA] font-semibold text-xs sm:text-sm transition-colors cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
+                className="w-full py-3 px-4 rounded-xl border border-[#DED7CD] dark:border-[#38312B] bg-white dark:bg-[#1E1B18] hover:bg-[#EAE4DC] dark:hover:bg-[#342D27] text-[#2B2B2B] dark:text-[#E6E1DA] font-semibold text-sm transition-colors cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
               >
                 <BookOpen className="w-4 h-4 text-[#736B63] dark:text-[#A59E95]" />
                 <span>Return to Flashcards</span>
@@ -625,7 +624,7 @@ export const MatchingQuiz: React.FC<MatchingQuizProps> = ({
 
       {/* Footer Navigation Tip */}
       {!isQuizComplete && (
-        <div className="w-full max-w-[440px] mx-auto pt-1.5 flex items-center justify-between text-[10px] text-[#736B63] dark:text-[#A59E95] font-medium shrink-0">
+        <div className="w-full max-w-[440px] mx-auto pt-2 flex items-center justify-between text-[13px] text-[#736B63] dark:text-[#A59E95] font-semibold shrink-0">
           <span>Tap Japanese & English in any order</span>
           <span className="tabular-nums">
             Accuracy {accuracyPercentage}% ({correctAttempts}/{correctAttempts + wrongAttempts})

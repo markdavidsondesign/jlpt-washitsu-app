@@ -1,5 +1,98 @@
-import type { JLPTLevel, VocabCardItem, FetchResult, DataSyncStatus, ExampleSentence } from './vocabTypes.ts';
-import { FALLBACK_VOCAB_DATA } from './fallbackVocab.ts';
+import type {
+  JLPTLevel,
+  VocabCardItem,
+  FetchResult,
+  DataSyncStatus,
+  ExampleSentence,
+  DeckId,
+  DeckMetadata,
+} from './vocabTypes.ts';
+import {
+  FALLBACK_VOCAB_DATA,
+  ELZUP_N4_VOCAB_DATA,
+  ELZUP_N5_VOCAB_DATA,
+} from './fallbackVocab.ts';
+import { JT4U_N4_VOCAB_DATA } from './jt4uN4Deck.ts';
+
+export { JT4U_N4_VOCAB_DATA } from './jt4uN4Deck.ts';
+
+export interface DeckEntry {
+  metadata: DeckMetadata;
+  cards: VocabCardItem[];
+}
+
+/**
+ * Central registry map containing metadata and card collections for all available decks.
+ */
+export const DECKS: Record<string, DeckEntry> = {
+  elzup_n4: {
+    metadata: {
+      id: 'elzup_n4',
+      name: 'elzup N4',
+      description: 'JLPT N4 vocabulary sourced from elzup GitHub dataset.',
+      level: 'N4',
+      cardCount: ELZUP_N4_VOCAB_DATA.length,
+    },
+    cards: ELZUP_N4_VOCAB_DATA,
+  },
+  elzup_n5: {
+    metadata: {
+      id: 'elzup_n5',
+      name: 'elzup N5',
+      description: 'JLPT N5 vocabulary sourced from elzup GitHub dataset.',
+      level: 'N5',
+      cardCount: ELZUP_N5_VOCAB_DATA.length,
+    },
+    cards: ELZUP_N5_VOCAB_DATA,
+  },
+  jt4u_n4: {
+    metadata: {
+      id: 'jt4u_n4',
+      name: 'JT4U N4',
+      description: 'JLPT N4 vocabulary sourced from JapaneseTest4You.com dataset.',
+      level: 'N4',
+      cardCount: JT4U_N4_VOCAB_DATA.length,
+    },
+    cards: JT4U_N4_VOCAB_DATA,
+  },
+};
+
+/**
+ * Returns the card items belonging to the requested deck ID.
+ */
+export function getDeckById(deckId: DeckId): VocabCardItem[] {
+  return DECKS[deckId]?.cards ?? [];
+}
+
+/**
+ * Returns all cards across all registered decks.
+ */
+export function getAllDeckCards(): VocabCardItem[] {
+  return Object.values(DECKS).flatMap((d) => d.cards);
+}
+
+export function getAllRegisteredCards(): VocabCardItem[] {
+  return Object.values(DECKS).flatMap((d) => d.cards);
+}
+
+/**
+ * Returns metadata for all registered decks in the system.
+ * If master deck cards are provided, cardCount reflects the actual loaded count.
+ */
+export function getAvailableDecks(cards?: VocabCardItem[]): DeckMetadata[] {
+  const baseDecks = Object.values(DECKS).map((d) => d.metadata);
+  if (!cards || cards.length === 0) return baseDecks;
+
+  return baseDecks.map((deck) => {
+    const matchingCount = cards.filter(
+      (c) => (c.deckId ? c.deckId === deck.id : c.level.toLowerCase() === deck.level.toLowerCase())
+    ).length;
+    return {
+      ...deck,
+      cardCount: matchingCount > 0 ? matchingCount : deck.cardCount,
+    };
+  });
+}
 
 interface VerbPairDetail {
   partner: string;
@@ -1156,6 +1249,11 @@ export function collapseItems(items: VocabCardItem[]): VocabCardItem {
 export function deduplicateAndNormalizeDeck(rawItems: VocabCardItem[]): VocabCardItem[] {
   // Pass 1: Okurigana repair and transitivity detection
   const normalizedItems: VocabCardItem[] = rawItems.map((raw) => {
+    // Preserve JT4U deck strictly as defined from the Google Doc
+    if (raw.deckId === 'jt4u_n4') {
+      return { ...raw };
+    }
+
     const reading = (raw.reading || raw.expression || '').trim();
     const expression = repairCorruptedOkurigana(raw.expression || '', reading);
 
@@ -1223,12 +1321,13 @@ export function deduplicateAndNormalizeDeck(rawItems: VocabCardItem[]): VocabCar
     };
   });
 
-  // Pass 2: Group by `kanji + reading` (plus meaningSlug for pure kana homophones)
+  // Pass 2: Group by `deckId + kanji + reading` (plus meaningSlug for pure kana homophones)
   const groups = new Map<string, VocabCardItem[]>();
   for (const item of normalizedItems) {
+    const deckPrefix = item.deckId || '';
     const hasKanji = /[\u4e00-\u9faf]/.test(item.expression);
     const meaningSlug = !hasKanji ? extractPrimaryMeaningSlug(item.meaning) : '';
-    const key = meaningSlug ? `${item.expression}:${item.reading}:${meaningSlug}` : `${item.expression}:${item.reading}`;
+    const key = `${deckPrefix}:${meaningSlug ? `${item.expression}:${item.reading}:${meaningSlug}` : `${item.expression}:${item.reading}`}`;
     const list = groups.get(key) || [];
     list.push(item);
     groups.set(key, list);
@@ -1240,6 +1339,10 @@ export function deduplicateAndNormalizeDeck(rawItems: VocabCardItem[]): VocabCar
   for (const [, items] of groups.entries()) {
     if (items.length === 1) {
       const single = items[0];
+      if (single.deckId === 'jt4u_n4') {
+        result.push({ ...single });
+        continue;
+      }
       const id = generateCanonicalCardId(single.level, single.expression, single.reading, single.transitivity, false);
       result.push({ ...single, id });
       continue;
@@ -1301,6 +1404,7 @@ export function parseCSVToVocab(csvText: string, level: JLPTLevel): VocabCardIte
 
     items.push({
       id: generateCanonicalCardId(level, expression, reading),
+      deckId: level === 'N4' ? 'elzup_n4' : 'elzup_n5',
       expression,
       reading,
       meaning,
@@ -1328,6 +1432,7 @@ export function parseJSONToVocab(jsonData: any[], level: JLPTLevel): VocabCardIt
 
     return {
       id: generateCanonicalCardId(level, expression, reading),
+      deckId: level === 'N4' ? 'elzup_n4' : 'elzup_n5',
       expression,
       reading,
       meaning,
@@ -1353,6 +1458,14 @@ export function rankAndEnrichVocab(rawItems: VocabCardItem[]): VocabCardItem[] {
 
   // Step 2: Score each item for exam frequency presence
   const scoredItems = items.map((item) => {
+    // Preserve JT4U deck strictly as defined from the Google Doc (no example sentences, exact definitions)
+    if (item.deckId === 'jt4u_n4') {
+      return {
+        item: { ...item },
+        score: item.priority || 500,
+      };
+    }
+
     let score = 500; // Base score
     let category = item.category;
     let pairNote = item.pairNote;
@@ -1483,11 +1596,16 @@ export function rankAndEnrichVocab(rawItems: VocabCardItem[]): VocabCardItem[] {
     }
   }
 
-  // Assign clean sequential 1-based priority index
-  return scoredItems.map((entry, index) => ({
-    ...entry.item,
-    priority: index + 1,
-  }));
+  // Assign clean sequential 1-based priority index (leaving jt4u_n4 cards intact)
+  return scoredItems.map((entry, index) => {
+    if (entry.item.deckId === 'jt4u_n4') {
+      return { ...entry.item };
+    }
+    return {
+      ...entry.item,
+      priority: index + 1,
+    };
+  });
 }
 
 /**
@@ -1499,6 +1617,8 @@ export async function fetchUnifiedDeck(): Promise<FetchResult> {
 
   const CSV_N5_URL = 'https://raw.githubusercontent.com/elzup/jlpt-word-list/master/src/n5.csv';
   const CSV_N4_URL = 'https://raw.githubusercontent.com/elzup/jlpt-word-list/master/src/n4.csv';
+
+  const baseCards = getAllRegisteredCards();
 
   // Step 1: Attempt JSON fetch
   try {
@@ -1515,7 +1635,7 @@ export async function fetchUnifiedDeck(): Promise<FetchResult> {
       const itemsN4 = parseJSONToVocab(dataN4, 'N4');
 
       if (itemsN5.length > 0 || itemsN4.length > 0) {
-        const merged = rankAndEnrichVocab([...FALLBACK_VOCAB_DATA, ...itemsN4, ...itemsN5]);
+        const merged = rankAndEnrichVocab([...baseCards, ...itemsN4, ...itemsN5]);
         return {
           items: merged,
           status: 'synced-json',
@@ -1542,8 +1662,7 @@ export async function fetchUnifiedDeck(): Promise<FetchResult> {
       const itemsN4 = parseCSVToVocab(textN4, 'N4');
 
       if (itemsN5.length > 0 || itemsN4.length > 0) {
-        // Merge with our rich curated fallback items for instant example sentences
-        const merged = rankAndEnrichVocab([...FALLBACK_VOCAB_DATA, ...itemsN4, ...itemsN5]);
+        const merged = rankAndEnrichVocab([...baseCards, ...itemsN4, ...itemsN5]);
         return {
           items: merged,
           status: 'synced-csv',
@@ -1556,10 +1675,10 @@ export async function fetchUnifiedDeck(): Promise<FetchResult> {
   }
 
   // Step 3: Graceful fallback to built-in high-frequency dataset
-  const fallbackRanked = rankAndEnrichVocab(FALLBACK_VOCAB_DATA);
+  const fallbackRanked = rankAndEnrichVocab(baseCards);
   return {
     items: fallbackRanked,
     status: 'fallback',
-    statusMessage: `Offline Mode (${fallbackRanked.length} high-frequency words)`,
+    statusMessage: `Offline Mode (${fallbackRanked.length} words across registered decks)`,
   };
 }

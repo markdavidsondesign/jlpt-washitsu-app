@@ -52,14 +52,14 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
           </h3>
         </div>
 
-        <p className="text-xs sm:text-sm text-[#736B63] dark:text-[#A59E95] leading-relaxed mb-6">
+        <p className="text-sm text-[#736B63] dark:text-[#A59E95] leading-relaxed mb-6 font-medium">
           This will reset all your JLPT N5 and N4 card study progress in LocalStorage back to Level 1 (New / Hard), clear your review streaks and stats, and restart your study queue.
         </p>
 
         <div className="flex items-center justify-end gap-2.5">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-[#736B63] dark:text-[#A59E95] hover:bg-[#EAE4DC] dark:hover:bg-[#342D27] rounded-xl transition-colors cursor-pointer"
+            className="px-4.5 py-2.5 text-sm font-semibold text-[#736B63] dark:text-[#A59E95] hover:bg-[#EAE4DC] dark:hover:bg-[#342D27] rounded-xl transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -68,7 +68,7 @@ export const ResetConfirmModal: React.FC<ResetConfirmModalProps> = ({
               onConfirm();
               onClose();
             }}
-            className="px-4 py-2 text-xs font-semibold text-white bg-[#C84B31] hover:bg-[#B23E26] rounded-xl transition-colors shadow-sm cursor-pointer"
+            className="px-4.5 py-2.5 text-sm font-semibold text-white bg-[#C84B31] hover:bg-[#B23E26] rounded-xl transition-colors shadow-sm cursor-pointer"
           >
             Yes, Reset All
           </button>
