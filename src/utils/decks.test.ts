@@ -48,21 +48,25 @@ test('DECKS registry contains elzup_n4, elzup_n5, and jt4u_n4 with exact metadat
 
 test('getAvailableDecks returns metadata array for all registered decks', () => {
   const decks: DeckMetadata[] = getAvailableDecks();
-  assert.equal(decks.length, 3);
+  assert.equal(decks.length, 4);
 
   const n4 = decks.find((d) => d.id === 'elzup_n4');
   const n5 = decks.find((d) => d.id === 'elzup_n5');
   const jt4u = decks.find((d) => d.id === 'jt4u_n4');
+  const grammar = decks.find((d) => d.id === 'n4_grammar');
 
   assert.ok(n4, 'elzup_n4 metadata must be returned');
   assert.ok(n5, 'elzup_n5 metadata must be returned');
   assert.ok(jt4u, 'jt4u_n4 metadata must be returned');
+  assert.ok(grammar, 'n4_grammar metadata must be returned');
   assert.equal(n4.level, 'N4');
   assert.equal(n5.level, 'N5');
   assert.equal(jt4u.level, 'N4');
+  assert.equal(grammar.level, 'N4');
   assert.equal(n4.cardCount, 50);
   assert.equal(n5.cardCount, 20);
   assert.equal(jt4u.cardCount, 536);
+  assert.equal(grammar.cardCount, 139);
 });
 
 test('getDeckById returns the correct card arrays with deckId tags', () => {

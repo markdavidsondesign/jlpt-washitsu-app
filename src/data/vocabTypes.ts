@@ -3,7 +3,7 @@ export type StudyMode = 'all' | 'n4' | 'n5' | string[];
 export type SelectedDeckIds = string[];
 export type DataSyncStatus = 'loading' | 'synced-json' | 'synced-csv' | 'fallback';
 
-export type DeckId = 'elzup_n4' | 'elzup_n5' | 'jt4u_n4' | 'n4_grammar' | (string & {});
+export type DeckId = 'elzup_n4' | 'elzup_n5' | 'jt4u_n4' | (string & {});
 
 export interface DeckMetadata {
   id: DeckId;

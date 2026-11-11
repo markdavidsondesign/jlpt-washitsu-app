@@ -440,11 +440,26 @@ export function getReviewModeQueue(
 }
 
 /**
+ * Lightweight Fisher-Yates shuffle helper function.
+ * Shuffles an array uniformly without mutating the original input.
+ */
+export function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+/**
  * Creates an active daily SRS batch (25 cards) in Learn Mode:
- * Dynamically interleaves due spaced-repetition review cards alongside unlearned/new JLPT N5/N4 cards:
- * 1. Prioritize overdue SRS cards (loaded from LocalStorage) first.
- * 2. Fill remaining batch slots with unlearned cards from the master list (sorted by priority).
- * 3. Enforces dynamic spacing for transitive/intransitive verb pairs (minimum spacing buffer >= 6).
+ * 1. Filter active deck to select ONLY unstudied/unlearned cards (no lastReviewedAt, level === 1).
+ * 2. Mastered cards and cards currently in an active SRS review cycle (Level 2 or Level 3)
+ *    must NEVER be pulled into new Learn batches.
+ * 3. Applies shuffleArray(unlearnedCards) to randomize presentation order for the JT4U deck
+ *    (or non-priority datasets) so learning is not predictable or alphabetical.
+ * 4. For priority-ranked decks (e.g. elzup), preserves priority ranking and verb-pair spacing.
  */
 export function getBatchQueue(
   deck: VocabCardItem[],
@@ -454,77 +469,47 @@ export function getBatchQueue(
 ): string[] {
   if (!deck || deck.length === 0) return [];
 
-  // Group into unlearned vs due review vs mastered
-  const unlearned: VocabCardItem[] = [];
-  const dueReview: VocabCardItem[] = [];
-  const mastered: VocabCardItem[] = [];
-
-  for (const item of deck) {
-    const progress = progressMap[item.id];
-    if (!progress || progress.reviewsCount === 0) {
-      unlearned.push(item);
-    } else if (progress.level === 3) {
-      mastered.push(item);
-    } else {
-      // Level 1 or 2 with reviewsCount > 0 is due for review
-      dueReview.push(item);
-    }
-  }
-
-  // Sort unlearned by priority ascending (1 = highest priority)
-  unlearned.sort((a, b) => a.priority - b.priority);
-
-  // Sort due review cards strictly by SRS urgency (Level 1 first, oldest review date first)
-  dueReview.sort((a, b) => {
-    const pA = progressMap[a.id];
-    const pB = progressMap[b.id];
-    const lvlA = pA ? pA.level : 1;
-    const lvlB = pB ? pB.level : 1;
-    if (lvlA !== lvlB) return lvlA - lvlB;
-    return (pA?.lastReviewedAt ?? 0) - (pB?.lastReviewedAt ?? 0);
+  // Filter unlearned cards first: select ONLY unstudied/unlearned cards
+  const unlearnedCards = deck.filter((card) => {
+    const progress = progressMap[card.id];
+    return !progress || (!progress.lastReviewedAt && (progress.level ?? 1) === 1);
   });
 
-  // If there are unlearned cards or due review cards:
-  if (unlearned.length > 0 || dueReview.length > 0) {
-    // Determine how many due cards to interleave
-    const maxDueSlots = Math.min(dueReview.length, Math.max(5, Math.floor(batchSize * 0.4)));
-    const dueBatchSlice = dueReview.slice(0, maxDueSlots);
-    const remainingNeededForNew = batchSize - dueBatchSlice.length;
+  // If there are unlearned cards available in the deck:
+  if (unlearnedCards.length > 0) {
+    const isJT4UDeck = deck.some((c) => c.deckId === 'jt4u_n4');
+    const isNonPriorityDeck =
+      isJT4UDeck ||
+      (unlearnedCards.length > 1 &&
+        unlearnedCards.every((c) => c.priority === unlearnedCards[0]?.priority));
 
-    // Pull unlearned cards slice for this batchIndex
-    let newBatchSlice: VocabCardItem[] = [];
-    if (unlearned.length > 0) {
-      const start = (batchIndex * remainingNeededForNew) % unlearned.length;
-      newBatchSlice = unlearned.slice(start, start + remainingNeededForNew);
-      if (newBatchSlice.length < remainingNeededForNew && unlearned.length > newBatchSlice.length) {
-        const wrapCount = remainingNeededForNew - newBatchSlice.length;
-        newBatchSlice = [...newBatchSlice, ...unlearned.slice(0, wrapCount)];
-      }
+    if (isNonPriorityDeck) {
+      // Apply shuffleArray to this unlearned subset for JT4U or non-priority decks
+      const shuffled = shuffleArray(unlearnedCards);
+      return shuffled.slice(0, batchSize).map((c) => c.id);
     }
 
-    // Combine overdue cards first, then new unlearned cards
-    const combinedIds = Array.from(
-      new Set([...dueBatchSlice.map((c) => c.id), ...newBatchSlice.map((c) => c.id)])
-    );
-
-    // If still short of batchSize (e.g. at the tail of deck), fill with other unmastered items
-    if (combinedIds.length < batchSize) {
-      const remainingFill = deck
-        .filter((c) => (progressMap[c.id]?.level ?? 1) < 3 && !combinedIds.includes(c.id))
-        .map((c) => c.id);
-      combinedIds.push(...remainingFill.slice(0, batchSize - combinedIds.length));
+    // Priority-ranked decks (e.g. elzup): sort unlearned cards by priority ascending (1 = highest priority)
+    unlearnedCards.sort((a, b) => a.priority - b.priority);
+    const start = (batchIndex * batchSize) % unlearnedCards.length;
+    let slice = unlearnedCards.slice(start, start + batchSize);
+    if (slice.length < batchSize && unlearnedCards.length > slice.length) {
+      const wrapCount = batchSize - slice.length;
+      slice = [...slice, ...unlearnedCards.slice(0, wrapCount)];
     }
-
-    if (combinedIds.length > 0) {
-      const rawBatch = combinedIds.slice(0, batchSize);
-      return interleavePairDistance(rawBatch, deck, 6);
-    }
+    const rawBatch = slice.map((c) => c.id);
+    return interleavePairDistance(rawBatch, deck, 6);
   }
 
-  // If all cards in this mode are mastered, allow practicing a batch of mastered cards
-  mastered.sort((a, b) => a.priority - b.priority);
-  const start = (batchIndex * batchSize) % (mastered.length || 1);
-  const rawMasteredBatch = mastered.slice(start, start + batchSize).map((i) => i.id);
+  // Fallback: If all cards in this mode have been studied, allow practicing from unmastered or mastered pool
+  const unmastered = deck.filter((c) => !progressMap[c.id]?.mastered);
+  const pool = unmastered.length > 0 ? unmastered : deck;
+  const isJT4UDeck = deck.some((c) => c.deckId === 'jt4u_n4');
+  if (isJT4UDeck) {
+    return shuffleArray(pool).slice(0, batchSize).map((c) => c.id);
+  }
+  const start = (batchIndex * batchSize) % (pool.length || 1);
+  const rawMasteredBatch = pool.slice(start, start + batchSize).map((i) => i.id);
   return interleavePairDistance(rawMasteredBatch, deck, 6);
 }
 

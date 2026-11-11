@@ -41,7 +41,7 @@ test('JT4U deck cards have strictly zero exampleSentence objects', () => {
 
 test('Deck filtering strictly isolates jt4u_n4 from other decks without bleed', () => {
   const allCards = getAllRegisteredCards();
-  assert.equal(allCards.length, 50 + 20 + 536, 'Combined master cards must equal 606');
+  assert.equal(allCards.length, 50 + 20 + 536 + 139, 'Combined master cards must equal 745');
 
   // Filter only jt4u_n4
   const jt4uOnly = filterDeckByDecks(allCards, ['jt4u_n4']);

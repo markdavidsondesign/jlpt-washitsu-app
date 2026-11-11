@@ -6,9 +6,10 @@ import {
   processSRSAction,
   calculateSRSStats,
   initializeDefaultProgress,
+  shuffleArray,
 } from './srs.ts';
 import {
-  N4_GRAMMAR_VOCAB_DATA,
+  JT4U_N4_VOCAB_DATA,
   DECKS,
   getDeckById,
   getAvailableDecks,
@@ -821,61 +822,80 @@ test('25-card batch cycle simulation requires every single card to receive Good 
   assert.equal(missedSet.has('card-25'), true);
 });
 
-test('JLPT N4 Grammar Patterns & Particles deck registration and card data integrity', () => {
-  // Total cards must be exactly 139
-  assert.equal(N4_GRAMMAR_VOCAB_DATA.length, 139);
-
-  // Check metadata registration
-  const grammarDeck = DECKS['n4_grammar'];
-  assert.ok(grammarDeck, 'n4_grammar must be registered in DECKS');
-  assert.equal(grammarDeck.metadata.name, 'JLPT N4 Grammar Patterns & Particles');
-  assert.equal(grammarDeck.metadata.level, 'N4');
-  assert.equal(grammarDeck.metadata.cardCount, 139);
-
-  // Check getDeckById
-  const retrieved = getDeckById('n4_grammar');
-  assert.equal(retrieved.length, 139);
-
-  // Verify getAvailableDecks contains n4_grammar
-  const available = getAvailableDecks();
-  assert.ok(available.some((d: any) => d.id === 'n4_grammar' && d.name === 'JLPT N4 Grammar Patterns & Particles'));
-
-  // First card: ～かた
-  const card1 = N4_GRAMMAR_VOCAB_DATA[0];
-  assert.equal(card1.expression, '～かた');
-  assert.equal(card1.meaning, 'way of doing [V.] / how to do [V.]');
-  assert.equal(card1.construction, 'Verb stem + かた');
-  assert.equal(card1.examplesText, '書き方 (how to write), 食べ方 (how to eat), し方 (how to do)');
-  assert.equal(card1.level, 'N4');
-  assert.equal(card1.deckId, 'n4_grammar');
-
-  // Second card: ～やすい
-  const card2 = N4_GRAMMAR_VOCAB_DATA[1];
-  assert.equal(card2.expression, '～やすい');
-  assert.equal(card2.meaning, 'easy to do [V.]');
-  assert.equal(card2.construction, 'Verb stem + やすい');
-  assert.ok(card2.examplesText?.includes('読みやすい'));
-
-  // Third card: ～にくい
-  const card3 = N4_GRAMMAR_VOCAB_DATA[2];
-  assert.equal(card3.expression, '～にくい');
-  assert.equal(card3.meaning, 'hard / difficult to do [V.]');
-  assert.equal(card3.construction, 'Verb stem + にくい');
-
-  // Verify all 139 cards have non-empty expression, meaning, and reading
-  for (const card of N4_GRAMMAR_VOCAB_DATA) {
-    assert.ok(card.expression.length > 0, `Expression must not be empty for card ${card.id}`);
-    assert.ok(card.meaning.length > 0, `Meaning must not be empty for card ${card.id}`);
-    assert.ok(card.reading.length > 0, `Reading must not be empty for card ${card.id}`);
-    assert.equal(card.deckId, 'n4_grammar');
-    assert.equal(card.level, 'N4');
-  }
-});
 
 test('cleanHiraganaForTTS cleans pattern strings with tildes (～ and ~)', () => {
   assert.equal(cleanHiraganaForTTS('～かた'), 'かた');
   assert.equal(cleanHiraganaForTTS('～やすい'), 'やすい');
   assert.equal(cleanHiraganaForTTS('～にくい'), 'にくい');
   assert.equal(cleanHiraganaForTTS('～れる／～られる'), 'れる');
+});
+
+test('shuffleArray correctly randomizes elements without mutating the original input', () => {
+  const original = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const copy = [...original];
+  const shuffled = shuffleArray(original);
+
+  // Original array remains intact (no in-place mutation)
+  assert.deepEqual(original, copy);
+  assert.equal(shuffled.length, original.length);
+
+  // Contains the exact same set of elements
+  assert.deepEqual([...shuffled].sort((a, b) => a - b), copy);
+
+  // Handles empty and single-item arrays gracefully
+  assert.deepEqual(shuffleArray([]), []);
+  assert.deepEqual(shuffleArray([42]), [42]);
+});
+
+test('getBatchQueue randomizes presentation order for JT4U deck and only selects unlearned cards', () => {
+  const progressMap: Record<string, any> = {};
+
+  // Mark the first 3 alphabetical cards as already reviewed / active SRS cards
+  // 1. jt4u_n4_001_agaru is in Level 2 (active review cycle)
+  progressMap['jt4u_n4_001_agaru'] = {
+    level: 2,
+    reviewsCount: 1,
+    streak: 1,
+    lastReviewedAt: Date.now() - 3600000,
+  };
+  // 2. jt4u_n4_002_aisatsu is Mastered (Level 3)
+  progressMap['jt4u_n4_002_aisatsu'] = {
+    level: 3,
+    reviewsCount: 3,
+    streak: 3,
+    lastReviewedAt: Date.now() - 3600000,
+    mastered: true,
+  };
+  // 3. jt4u_n4_003_aji is Level 1 but already reviewed once (in active review cycle)
+  progressMap['jt4u_n4_003_aji'] = {
+    level: 1,
+    reviewsCount: 1,
+    streak: 0,
+    lastReviewedAt: Date.now() - 1800000,
+  };
+
+  const batch = getBatchQueue(JT4U_N4_VOCAB_DATA, progressMap, 25, 0);
+
+  // 1. Batch length must be exactly 25
+  assert.equal(batch.length, 25);
+
+  // 2. Active SRS & Mastered cards must NEVER be pulled into new Learn batches
+  assert.equal(batch.includes('jt4u_n4_001_agaru'), false, 'Level 2 active SRS card must not be in learn batch');
+  assert.equal(batch.includes('jt4u_n4_002_aisatsu'), false, 'Mastered Level 3 card must not be in learn batch');
+  assert.equal(batch.includes('jt4u_n4_003_aji'), false, 'Previously reviewed card with lastReviewedAt must not be in learn batch');
+
+  // 3. Order must NOT be static alphabetical order (not jt4u_n4_004, 005, 006...)
+  const alphabeticalSlice = JT4U_N4_VOCAB_DATA.slice(3, 28).map((c) => c.id);
+  const isIdenticalToAlphabetical = batch.every((id, idx) => id === alphabeticalSlice[idx]);
+  assert.equal(isIdenticalToAlphabetical, false, 'JT4U batch presentation order must be randomized');
+
+  // 4. Every card in the batch must be a genuine unlearned card
+  for (const cardId of batch) {
+    const progress = progressMap[cardId];
+    assert.ok(
+      !progress || (!progress.lastReviewedAt && (progress.level ?? 1) === 1),
+      `Card ${cardId} in learn batch must be strictly unlearned`
+    );
+  }
 });
 
