@@ -171,18 +171,32 @@ export default function App() {
   // =========================================================================
   // Learn Mode State:
   const [learnQueue, setLearnQueue] = useState<string[]>(() => {
-    if (savedSession && savedSession.primaryMode === 'learn' && savedSession.queueCardIds?.length > 0) {
-      return savedSession.queueCardIds;
+    const initialMaster = rankAndEnrichVocab(getAllRegisteredCards());
+    const initialModeDeck = filterDeckByMode(initialMaster, selectedDeckIds);
+    if (savedSession && savedSession.primaryMode === 'learn' && Array.isArray(savedSession.queueCardIds) && savedSession.queueCardIds.length > 0) {
+      const valid = savedSession.queueCardIds.filter((id) =>
+        initialMaster.some((c) => String(c.id) === String(id) || c.expression === String(id))
+      );
+      if (valid.length > 0) return valid;
     }
-    const initialCards = rankAndEnrichVocab(getAllRegisteredCards());
-    return getBatchQueue(initialCards, progressMap, BATCH_SIZE, 0);
+    const fresh = getBatchQueue(initialModeDeck, progressMap, BATCH_SIZE, 0);
+    if (fresh.length > 0) return fresh;
+    const unmastered = initialModeDeck.filter((c) => !progressMap[c.id]?.mastered).map((c) => c.id);
+    return unmastered.length > 0 ? unmastered.slice(0, BATCH_SIZE) : initialModeDeck.slice(0, BATCH_SIZE).map((c) => c.id);
   });
   const [learnActiveBatchIds, setLearnActiveBatchIds] = useState<string[]>(() => {
-    if (savedSession && savedSession.primaryMode === 'learn' && savedSession.activeBatchIds?.length > 0) {
-      return savedSession.activeBatchIds;
+    const initialMaster = rankAndEnrichVocab(getAllRegisteredCards());
+    const initialModeDeck = filterDeckByMode(initialMaster, selectedDeckIds);
+    if (savedSession && savedSession.primaryMode === 'learn' && Array.isArray(savedSession.activeBatchIds) && savedSession.activeBatchIds.length > 0) {
+      const valid = savedSession.activeBatchIds.filter((id) =>
+        initialMaster.some((c) => String(c.id) === String(id) || c.expression === String(id))
+      );
+      if (valid.length > 0) return valid;
     }
-    const initialCards = rankAndEnrichVocab(getAllRegisteredCards());
-    return getBatchQueue(initialCards, progressMap, BATCH_SIZE, 0);
+    const fresh = getBatchQueue(initialModeDeck, progressMap, BATCH_SIZE, 0);
+    if (fresh.length > 0) return fresh;
+    const unmastered = initialModeDeck.filter((c) => !progressMap[c.id]?.mastered).map((c) => c.id);
+    return unmastered.length > 0 ? unmastered.slice(0, BATCH_SIZE) : initialModeDeck.slice(0, BATCH_SIZE).map((c) => c.id);
   });
   const [learnMasteredIds, setLearnMasteredIds] = useState<Set<string>>(() => {
     if (savedSession && savedSession.primaryMode === 'learn' && Array.isArray(savedSession.masteredCardIds)) {
@@ -204,16 +218,26 @@ export default function App() {
 
   // Review Mode State:
   const [reviewQueue, setReviewQueue] = useState<string[]>(() => {
-    if (savedSession && savedSession.primaryMode === 'review' && savedSession.queueCardIds?.length > 0) {
-      return savedSession.queueCardIds;
+    const initialMaster = rankAndEnrichVocab(getAllRegisteredCards());
+    const initialModeDeck = filterDeckByMode(initialMaster, selectedDeckIds);
+    if (savedSession && savedSession.primaryMode === 'review' && Array.isArray(savedSession.queueCardIds) && savedSession.queueCardIds.length > 0) {
+      const valid = savedSession.queueCardIds.filter((id) =>
+        initialMaster.some((c) => String(c.id) === String(id) || c.expression === String(id))
+      );
+      if (valid.length > 0) return valid;
     }
-    return [];
+    return getReviewModeQueue(initialModeDeck, progressMap, BATCH_SIZE);
   });
   const [reviewActiveBatchIds, setReviewActiveBatchIds] = useState<string[]>(() => {
-    if (savedSession && savedSession.primaryMode === 'review' && savedSession.activeBatchIds?.length > 0) {
-      return savedSession.activeBatchIds;
+    const initialMaster = rankAndEnrichVocab(getAllRegisteredCards());
+    const initialModeDeck = filterDeckByMode(initialMaster, selectedDeckIds);
+    if (savedSession && savedSession.primaryMode === 'review' && Array.isArray(savedSession.activeBatchIds) && savedSession.activeBatchIds.length > 0) {
+      const valid = savedSession.activeBatchIds.filter((id) =>
+        initialMaster.some((c) => String(c.id) === String(id) || c.expression === String(id))
+      );
+      if (valid.length > 0) return valid;
     }
-    return [];
+    return getReviewModeQueue(initialModeDeck, progressMap, BATCH_SIZE);
   });
   const [reviewMasteredIds, setReviewMasteredIds] = useState<Set<string>>(() => {
     if (savedSession && savedSession.primaryMode === 'review' && Array.isArray(savedSession.masteredCardIds)) {
@@ -289,12 +313,19 @@ export default function App() {
           });
 
           const activeSession = loadActiveSession();
-          if (activeSession && activeSession.queueCardIds && activeSession.queueCardIds.length > 0) {
+          const validSessionCards = activeSession?.queueCardIds?.filter((id) =>
+            result.items.some((c) => String(c.id) === String(id) || c.expression === String(id))
+          );
+          if (validSessionCards && validSessionCards.length > 0) {
             // Keep active session queue to preserve user mid-batch position!
           } else {
             // Initialize active learn batch queue with newly loaded deck and merged progress
             const filtered = filterDeckByMode(result.items, selectedDeckIds);
-            const initialBatch = getBatchQueue(filtered, mergedProgress, BATCH_SIZE, batchIndex);
+            let initialBatch = getBatchQueue(filtered, mergedProgress, BATCH_SIZE, batchIndex);
+            if (initialBatch.length === 0 && filtered.length > 0) {
+              const unmastered = filtered.filter((c) => !mergedProgress[c.id]?.mastered).map((c) => c.id);
+              initialBatch = unmastered.length > 0 ? unmastered.slice(0, BATCH_SIZE) : filtered.slice(0, BATCH_SIZE).map((c) => c.id);
+            }
             setLearnQueue(initialBatch);
             setLearnActiveBatchIds(initialBatch);
             setLearnMasteredIds(new Set());
@@ -353,8 +384,12 @@ export default function App() {
       prevSelectedDecksRef.current = selectedDeckIds;
       prevBatchIndexRef.current = batchIndex;
 
-      if (decksChanged || isIndexChange) {
-        const newBatch = getBatchQueue(modeDeck, progressMap, BATCH_SIZE, batchIndex);
+      if (decksChanged || isIndexChange || (learnQueue.length === 0 && modeDeck.length > 0)) {
+        let newBatch = getBatchQueue(modeDeck, progressMap, BATCH_SIZE, batchIndex);
+        if (newBatch.length === 0 && modeDeck.length > 0) {
+          const unmastered = modeDeck.filter((c) => !progressMap[c.id]?.mastered).map((c) => c.id);
+          newBatch = unmastered.length > 0 ? unmastered.slice(0, BATCH_SIZE) : modeDeck.slice(0, BATCH_SIZE).map((c) => c.id);
+        }
         setLearnQueue(newBatch);
         setLearnActiveBatchIds(newBatch);
         setLearnMasteredIds(new Set());
@@ -363,14 +398,56 @@ export default function App() {
         setIsMiniDeckCleared(false);
       }
     }
-  }, [selectedDeckIds, batchIndex, modeDeck, primaryMode, isReviewingMissed, progressMap]);
+  }, [selectedDeckIds, batchIndex, modeDeck, primaryMode, isReviewingMissed, progressMap, learnQueue.length]);
 
-  // Current active card
+  // Current active card resolution with multi-level resilient fallback
   const currentCardId = sessionQueue[0] || null;
   const currentCard: VocabCardItem | undefined = useMemo(() => {
-    if (!currentCardId) return undefined;
-    return masterDeck.find((c) => String(c.id) === String(currentCardId));
-  }, [currentCardId, masterDeck]);
+    if (!currentCardId) {
+      return modeDeck[0] || masterDeck[0] || undefined;
+    }
+    const targetStr = String(currentCardId).trim();
+
+    // 1. Direct ID match in masterDeck
+    const directMaster = masterDeck.find((c) => String(c.id) === targetStr);
+    if (directMaster) return directMaster;
+
+    // 2. Direct ID match in modeDeck
+    const directMode = modeDeck.find((c) => String(c.id) === targetStr);
+    if (directMode) return directMode;
+
+    // 3. Match in registered raw cards
+    const rawCards = getAllRegisteredCards();
+    const rawMatch = rawCards.find((c) => String(c.id) === targetStr);
+    if (rawMatch) {
+      const inMaster = masterDeck.find((c) => c.expression === rawMatch.expression && c.reading === rawMatch.reading);
+      if (inMaster) return inMaster;
+      return rawMatch;
+    }
+
+    // 4. Semantic match by expression or reading
+    const semantic = masterDeck.find((c) => {
+      const cId = String(c.id);
+      return (
+        c.expression === targetStr ||
+        c.reading === targetStr ||
+        cId.includes(targetStr) ||
+        targetStr.includes(cId) ||
+        targetStr.includes(`_${c.expression}_`) ||
+        targetStr.endsWith(`_${c.expression}`)
+      );
+    });
+    if (semantic) return semantic;
+
+    // 5. Scan sessionQueue for first valid card
+    for (const nextId of sessionQueue) {
+      const found = masterDeck.find((c) => String(c.id) === String(nextId));
+      if (found) return found;
+    }
+
+    // 6. Absolute safety fallback: first card in active mode deck
+    return modeDeck[0] || masterDeck[0] || undefined;
+  }, [currentCardId, masterDeck, modeDeck, sessionQueue]);
 
   // Current card progress
   const currentCardProgress: CardProgress = useMemo(() => {
@@ -735,6 +812,7 @@ export default function App() {
   const firstPassCount = Math.max(0, totalBatchCount - retryCount);
   const isBatchComplete = sessionQueue.length === 0 && activeBatchIds.length > 0;
   const isReviewModeEmpty = primaryMode === 'review' && activeBatchIds.length === 0;
+  const isLearnModeEmpty = primaryMode === 'learn' && activeBatchIds.length === 0;
 
   return (
     <div
@@ -828,6 +906,34 @@ export default function App() {
                 className="w-full sm:w-auto px-4.5 py-2.5 rounded-xl bg-[#6B7F5E] hover:bg-[#5A6D4E] text-white text-sm font-semibold shadow-xs cursor-pointer inline-flex items-center justify-center gap-1.5 transition-colors"
               >
                 <span>Switch to Learn Mode</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => handleSelectPrimaryMode('quiz')}
+                className="w-full sm:w-auto px-4.5 py-2.5 rounded-xl border border-[#CAD8C5] dark:border-[#384A33] bg-[#F0F3ED] dark:bg-[#242F22] text-[#4A6B53] dark:text-[#A6C09C] text-sm font-semibold shadow-xs cursor-pointer inline-flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <span>Play Matching Quiz</span>
+              </button>
+            </div>
+          </div>
+        ) : isLearnModeEmpty ? (
+          /* Empty Learn Mode State (All cards in active selection learned) */
+          <div className="w-full max-w-[420px] mx-auto text-center p-6 sm:p-7 rounded-3xl bg-[#FAF8F5] dark:bg-[#28231F] border border-[#DED7CD] dark:border-[#38312B] shadow-lg shadow-[#332C27]/5 box-border">
+            <div className="w-12 h-12 rounded-2xl bg-[#EDF3EF] dark:bg-[#202E24] text-[#4A6B53] dark:text-[#8BAF95] flex items-center justify-center mx-auto mb-3 shadow-2xs border border-[#D1E1D6] dark:border-[#314838]">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <h3 className="text-base sm:text-lg font-bold font-jp text-[#2B2B2B] dark:text-[#E6E1DA]">
+              All Cards in Deck Selection Learned!
+            </h3>
+            <p className="text-sm text-[#736B63] dark:text-[#A59E95] mt-1.5 leading-relaxed font-medium">
+              You have introduced all unlearned cards from your selected deck(s). Mastered cards and active SRS reviews belong strictly in Review Mode!
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mt-4">
+              <button
+                onClick={() => handleSelectPrimaryMode('review')}
+                className="w-full sm:w-auto px-4.5 py-2.5 rounded-xl bg-[#6B7F5E] hover:bg-[#5A6D4E] text-white text-sm font-semibold shadow-xs cursor-pointer inline-flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <span>Go to Review Mode</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
               <button

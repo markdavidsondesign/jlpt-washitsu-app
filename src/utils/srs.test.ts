@@ -899,3 +899,38 @@ test('getBatchQueue randomizes presentation order for JT4U deck and only selects
   }
 });
 
+test('getBatchQueue returns empty array when all cards in deck have been learned or mastered', () => {
+  const sampleDeck: VocabCardItem[] = [
+    {
+      id: 'c1',
+      expression: '単語1',
+      reading: 'たんごいち',
+      meaning: 'word 1',
+      level: 'N4',
+      tags: [],
+      priority: 1,
+      deckId: 'jt4u_n4',
+    },
+    {
+      id: 'c2',
+      expression: '単語2',
+      reading: 'たんごに',
+      meaning: 'word 2',
+      level: 'N4',
+      tags: [],
+      priority: 2,
+      deckId: 'jt4u_n4',
+    },
+  ];
+
+  // Both cards have been studied (one active SRS level 2, one mastered level 3)
+  const progressMap = {
+    c1: { level: 2 as const, reviewsCount: 1, streak: 1, lastReviewedAt: Date.now() },
+    c2: { level: 3 as const, reviewsCount: 3, streak: 3, lastReviewedAt: Date.now(), mastered: true },
+  };
+
+  const batch = getBatchQueue(sampleDeck, progressMap, 25, 0);
+  assert.deepEqual(batch, [], 'Learn batch must return empty array when all cards are learned/mastered');
+});
+
+

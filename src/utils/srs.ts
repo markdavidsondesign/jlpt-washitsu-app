@@ -475,42 +475,34 @@ export function getBatchQueue(
     return !progress || (!progress.lastReviewedAt && (progress.level ?? 1) === 1);
   });
 
-  // If there are unlearned cards available in the deck:
-  if (unlearnedCards.length > 0) {
-    const isJT4UDeck = deck.some((c) => c.deckId === 'jt4u_n4');
-    const isNonPriorityDeck =
-      isJT4UDeck ||
-      (unlearnedCards.length > 1 &&
-        unlearnedCards.every((c) => c.priority === unlearnedCards[0]?.priority));
-
-    if (isNonPriorityDeck) {
-      // Apply shuffleArray to this unlearned subset for JT4U or non-priority decks
-      const shuffled = shuffleArray(unlearnedCards);
-      return shuffled.slice(0, batchSize).map((c) => c.id);
-    }
-
-    // Priority-ranked decks (e.g. elzup): sort unlearned cards by priority ascending (1 = highest priority)
-    unlearnedCards.sort((a, b) => a.priority - b.priority);
-    const start = (batchIndex * batchSize) % unlearnedCards.length;
-    let slice = unlearnedCards.slice(start, start + batchSize);
-    if (slice.length < batchSize && unlearnedCards.length > slice.length) {
-      const wrapCount = batchSize - slice.length;
-      slice = [...slice, ...unlearnedCards.slice(0, wrapCount)];
-    }
-    const rawBatch = slice.map((c) => c.id);
-    return interleavePairDistance(rawBatch, deck, 6);
+  // If all cards in the active deck have been learned, do not fall back to pulling mastered/active SRS cards
+  // into fresh Learn batches (return []). Mastered cards and cards in active review belong strictly in Review Mode.
+  if (unlearnedCards.length === 0) {
+    return [];
   }
 
-  // Fallback: If all cards in this mode have been studied, allow practicing from unmastered or mastered pool
-  const unmastered = deck.filter((c) => !progressMap[c.id]?.mastered);
-  const pool = unmastered.length > 0 ? unmastered : deck;
   const isJT4UDeck = deck.some((c) => c.deckId === 'jt4u_n4');
-  if (isJT4UDeck) {
-    return shuffleArray(pool).slice(0, batchSize).map((c) => c.id);
+  const isNonPriorityDeck =
+    isJT4UDeck ||
+    (unlearnedCards.length > 1 &&
+      unlearnedCards.every((c) => c.priority === unlearnedCards[0]?.priority));
+
+  if (isNonPriorityDeck) {
+    // Apply shuffleArray to this unlearned subset for JT4U or non-priority decks
+    const shuffled = shuffleArray(unlearnedCards);
+    return shuffled.slice(0, batchSize).map((c) => c.id);
   }
-  const start = (batchIndex * batchSize) % (pool.length || 1);
-  const rawMasteredBatch = pool.slice(start, start + batchSize).map((i) => i.id);
-  return interleavePairDistance(rawMasteredBatch, deck, 6);
+
+  // Priority-ranked decks (e.g. elzup): sort unlearned cards by priority ascending (1 = highest priority)
+  unlearnedCards.sort((a, b) => a.priority - b.priority);
+  const start = (batchIndex * batchSize) % unlearnedCards.length;
+  let slice = unlearnedCards.slice(start, start + batchSize);
+  if (slice.length < batchSize && unlearnedCards.length > slice.length) {
+    const wrapCount = batchSize - slice.length;
+    slice = [...slice, ...unlearnedCards.slice(0, wrapCount)];
+  }
+  const rawBatch = slice.map((c) => c.id);
+  return interleavePairDistance(rawBatch, deck, 6);
 }
 
 /**

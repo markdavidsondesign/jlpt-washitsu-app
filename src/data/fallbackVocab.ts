@@ -5,6 +5,7 @@ import { ELZUP_N5_VOCAB_DATA } from './elzupN5Deck.ts';
 export { ELZUP_N4_VOCAB_DATA } from './elzupN4Deck.ts';
 export { ELZUP_N5_VOCAB_DATA } from './elzupN5Deck.ts';
 export { JT4U_N4_VOCAB_DATA } from './jt4uN4Deck.ts';
+export { N4_GRAMMAR_VOCAB_DATA } from './n4GrammarDeck.ts';
 
 /**
  * Combined fallback vocabulary dataset containing both N4 and N5 items.
