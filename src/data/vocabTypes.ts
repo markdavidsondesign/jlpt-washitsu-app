@@ -3,7 +3,7 @@ export type StudyMode = 'all' | 'n4' | 'n5' | string[];
 export type SelectedDeckIds = string[];
 export type DataSyncStatus = 'loading' | 'synced-json' | 'synced-csv' | 'fallback';
 
-export type DeckId = 'elzup_n4' | 'elzup_n5' | 'jt4u_n4' | (string & {});
+export type DeckId = 'elzup_n4' | 'elzup_n5' | 'jt4u_n4' | 'n4_grammar' | (string & {});
 
 export interface DeckMetadata {
   id: DeckId;
@@ -35,6 +35,8 @@ export interface VocabCardItem {
   relatedId?: string; // ID of the transitive/intransitive partner card
   exampleSentence?: ExampleSentence;
   radical?: string;   // Optional radical if primary kanji identified
+  construction?: string; // Grammar construction rule (e.g., Verb stem + かた)
+  examplesText?: string; // Example sentence or usage string from grammar dataset
 }
 
 export interface FetchResult {

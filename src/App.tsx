@@ -200,6 +200,7 @@ export default function App() {
     return Boolean(savedSession?.isReviewingMissed);
   });
   const [isMiniDeckCleared, setIsMiniDeckCleared] = useState<boolean>(false);
+  const [cardRetryNonce, setCardRetryNonce] = useState<number>(0);
 
   // Review Mode State:
   const [reviewQueue, setReviewQueue] = useState<string[]>(() => {
@@ -460,6 +461,7 @@ export default function App() {
     saveProgress(updatedProgressMap, newStats, totalFlipsRef.current);
     setProgressMap(updatedProgressMap);
     setIsFlipped(false);
+    setCardRetryNonce((prev) => prev + 1);
 
     if (action === 'again') {
       // Swiped Left ("Again"): Needs Review
@@ -470,12 +472,14 @@ export default function App() {
         setReviewMissedIds((prev) => new Set(prev).add(currentCardId));
       }
 
-      // 2. Keep card in active cycling queue until answered correctly
+      // 2. Keep card in active cycling queue until answered correctly (Good or Easy)
       const nextQueue = getNextQueue(sessionQueue, currentCardId, 'again');
+      // If queue had 1 card or returned empty, strictly guarantee currentCardId remains in queue
+      const safeNextQueue = nextQueue.length > 0 ? nextQueue : [currentCardId];
       if (primaryMode === 'learn') {
-        setLearnQueue(nextQueue);
+        setLearnQueue(safeNextQueue);
       } else {
-        setReviewQueue(nextQueue);
+        setReviewQueue(safeNextQueue);
       }
     } else {
       // Swiped Right ("Good" / "Easy"): Reached Mastered for this session!
@@ -792,6 +796,7 @@ export default function App() {
             {/* Adaptive Flashcard Component (Width 90%, Max 420px, Max Height 560px, Aspect 3/4) */}
             <div className="flex-1 min-h-0 w-full flex items-center justify-center">
               <KanjiCard
+                key={`${currentCard.id}_${cardRetryNonce}`}
                 ref={cardRef}
                 card={currentCard}
                 level={currentCardProgress.level}

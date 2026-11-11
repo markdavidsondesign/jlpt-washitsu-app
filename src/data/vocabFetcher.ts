@@ -13,8 +13,10 @@ import {
   ELZUP_N5_VOCAB_DATA,
 } from './fallbackVocab.ts';
 import { JT4U_N4_VOCAB_DATA } from './jt4uN4Deck.ts';
+import { N4_GRAMMAR_VOCAB_DATA } from './n4GrammarDeck.ts';
 
 export { JT4U_N4_VOCAB_DATA } from './jt4uN4Deck.ts';
+export { N4_GRAMMAR_VOCAB_DATA } from './n4GrammarDeck.ts';
 
 export interface DeckEntry {
   metadata: DeckMetadata;
@@ -54,6 +56,16 @@ export const DECKS: Record<string, DeckEntry> = {
       cardCount: JT4U_N4_VOCAB_DATA.length,
     },
     cards: JT4U_N4_VOCAB_DATA,
+  },
+  n4_grammar: {
+    metadata: {
+      id: 'n4_grammar',
+      name: 'JLPT N4 Grammar Patterns & Particles',
+      description: 'Essential JLPT N4 grammar patterns, verb endings, and particles with constructions and examples.',
+      level: 'N4',
+      cardCount: N4_GRAMMAR_VOCAB_DATA.length,
+    },
+    cards: N4_GRAMMAR_VOCAB_DATA,
   },
 };
 
@@ -1249,8 +1261,8 @@ export function collapseItems(items: VocabCardItem[]): VocabCardItem {
 export function deduplicateAndNormalizeDeck(rawItems: VocabCardItem[]): VocabCardItem[] {
   // Pass 1: Okurigana repair and transitivity detection
   const normalizedItems: VocabCardItem[] = rawItems.map((raw) => {
-    // Preserve JT4U deck strictly as defined from the Google Doc
-    if (raw.deckId === 'jt4u_n4') {
+    // Preserve JT4U and Grammar decks strictly as defined
+    if (raw.deckId === 'jt4u_n4' || raw.deckId === 'n4_grammar') {
       return { ...raw };
     }
 
@@ -1339,7 +1351,7 @@ export function deduplicateAndNormalizeDeck(rawItems: VocabCardItem[]): VocabCar
   for (const [, items] of groups.entries()) {
     if (items.length === 1) {
       const single = items[0];
-      if (single.deckId === 'jt4u_n4') {
+      if (single.deckId === 'jt4u_n4' || single.deckId === 'n4_grammar') {
         result.push({ ...single });
         continue;
       }
@@ -1458,8 +1470,8 @@ export function rankAndEnrichVocab(rawItems: VocabCardItem[]): VocabCardItem[] {
 
   // Step 2: Score each item for exam frequency presence
   const scoredItems = items.map((item) => {
-    // Preserve JT4U deck strictly as defined from the Google Doc (no example sentences, exact definitions)
-    if (item.deckId === 'jt4u_n4') {
+    // Preserve JT4U and Grammar decks strictly as defined
+    if (item.deckId === 'jt4u_n4' || item.deckId === 'n4_grammar') {
       return {
         item: { ...item },
         score: item.priority || 500,

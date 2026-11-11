@@ -77,10 +77,10 @@ if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
  */
 export function cleanHiraganaForTTS(raw: string): string {
   if (!raw) return '';
-  // If multiple readings are listed with '/' (e.g. "う・まれる / い・きる / せい"), take primary reading
-  const primary = raw.includes('/') ? raw.split('/')[0].trim() : raw;
-  // Remove okurigana separator dots and redundant symbols
-  return primary.replace(/[・･]/g, '').trim();
+  // If multiple readings are listed with '/' or '／' (e.g. "う・まれる / い・きる / せい" or "～れる／～られる"), take primary reading
+  const primary = /[／/]/.test(raw) ? raw.split(/[／/]/)[0].trim() : raw;
+  // Remove okurigana separator dots and redundant symbols (including pattern tildes)
+  return primary.replace(/[・･～~]/g, '').trim();
 }
 
 /**

@@ -44,6 +44,7 @@ export const KanjiCard = forwardRef<KanjiCardRef, KanjiCardProps>(({
   const rawDxRef = useRef<number>(0);
   const lastFlipTimeRef = useRef<number>(0);
   const cardRef = useRef<HTMLDivElement>(null);
+  const swipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Physics constants:
   // - Constrain maximum horizontal displacement along X-axis to subtle distance (max ±100px, within ±80px to ±120px)
@@ -54,7 +55,7 @@ export const KanjiCard = forwardRef<KanjiCardRef, KanjiCardProps>(({
   const MAX_ROTATION_DEG = 25;
   const ROTATION_FACTOR = 0.15;
 
-  // Reset drag and animation position when card changes
+  // Reset drag and animation position when card changes or unmounts
   useEffect(() => {
     setDragOffset(0);
     setIsDragging(false);
@@ -62,6 +63,12 @@ export const KanjiCard = forwardRef<KanjiCardRef, KanjiCardProps>(({
     setFlyDirection(null);
     hasMovedRef.current = false;
     rawDxRef.current = 0;
+
+    return () => {
+      if (swipeTimeoutRef.current) {
+        clearTimeout(swipeTimeoutRef.current);
+      }
+    };
   }, [card.id]);
 
   // Memoized decomposition of constituent radicals and sub-elements
@@ -100,8 +107,15 @@ export const KanjiCard = forwardRef<KanjiCardRef, KanjiCardProps>(({
     // Move cleanly off container (360px completely exits the 450px card box without infinite dragging)
     setDragOffset(direction === 'right' ? 360 : -360);
 
-    setTimeout(() => {
+    if (swipeTimeoutRef.current) {
+      clearTimeout(swipeTimeoutRef.current);
+    }
+
+    swipeTimeoutRef.current = setTimeout(() => {
       const action: SRSAction = direction === 'left' ? 'again' : (level >= 2 ? 'easy' : 'good');
+      setIsFlyingOut(false);
+      setDragOffset(0);
+      setFlyDirection(null);
       onSwipe(action);
     }, 220);
   }, [isFlyingOut, level, onSwipe]);
@@ -366,7 +380,13 @@ export const KanjiCard = forwardRef<KanjiCardRef, KanjiCardProps>(({
 
               {/* Center: ONLY the target Kanji or Vocabulary expression in Sumi Black with fluid clamp font */}
               <div className="flex flex-col items-center justify-center my-auto py-2 text-center px-1">
-                <span className="font-jp font-bold tracking-tight text-[#2B2B2B] dark:text-[#E6E1DA] text-[clamp(2.5rem,7.5vh,4.75rem)] transition-transform duration-200 leading-tight">
+                <span className={`font-jp font-bold tracking-tight text-[#2B2B2B] dark:text-[#E6E1DA] transition-transform duration-200 leading-tight ${
+                  card.expression.length > 8
+                    ? 'text-[clamp(1.5rem,4vh,2.25rem)]'
+                    : card.expression.length > 5
+                    ? 'text-[clamp(1.85rem,5.5vh,2.85rem)]'
+                    : 'text-[clamp(2.5rem,7.5vh,4.75rem)]'
+                }`}>
                   {card.expression}
                 </span>
               </div>
@@ -505,6 +525,46 @@ export const KanjiCard = forwardRef<KanjiCardRef, KanjiCardProps>(({
                     </>
                   )}
                 </div>
+
+                {/* Grammar Construction Section */}
+                {card.construction && (
+                  <div className="flex flex-col gap-1 shrink-0 mt-0.5">
+                    <span className="text-xs uppercase tracking-wider font-bold text-[#736B63] dark:text-[#A59E95]">
+                      Construction / Rule
+                    </span>
+                    <div className="p-2.5 rounded-xl bg-[#F7F4EC] dark:bg-[#332E23] border border-[#E8DFC9] dark:border-[#504734] text-[#8C6D3B] dark:text-[#DEC88E] font-jp font-semibold text-sm leading-relaxed whitespace-pre-line">
+                      {card.construction}
+                    </div>
+                  </div>
+                )}
+
+                {/* Grammar Examples Section */}
+                {card.examplesText && (
+                  <div className="shrink-0 mt-0.5">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs uppercase tracking-wider font-bold text-[#736B63] dark:text-[#A59E95]">
+                        Example(s)
+                      </span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const firstEx = card.examplesText?.split('\n')[0] || '';
+                          const jpPart = firstEx.replace(/\s*\([^)]*\).*/g, '').trim();
+                          if (jpPart) speakJapanese(jpPart);
+                        }}
+                        className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[13px] font-semibold text-[#736B63] dark:text-[#A59E95] hover:text-[#6B7F5E] dark:hover:text-[#A6C09C] transition-colors pointer-events-auto cursor-pointer"
+                        title="Play example audio"
+                        aria-label="Play example audio"
+                      >
+                        <Volume2 className="w-3.5 h-3.5 text-[#6B7F5E]" />
+                        <span>Listen</span>
+                      </button>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[#F5F2EC] dark:bg-[#201C18] border border-[#DED7CD] dark:border-[#38312B] text-[#2B2B2B] dark:text-[#E6E1DA] font-jp text-sm leading-relaxed whitespace-pre-line">
+                      {card.examplesText}
+                    </div>
+                  </div>
+                )}
 
                 {/* Example Sentence Section directly beneath metadata with tight padding */}
                 {card.exampleSentence && (

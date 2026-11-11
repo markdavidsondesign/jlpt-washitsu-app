@@ -42,7 +42,9 @@ export const DeckOverviewModal: React.FC<DeckOverviewModalProps> = ({
       const matchReading = card.reading.toLowerCase().includes(q);
       const matchMeaning = card.meaning.toLowerCase().includes(q);
       const matchCategory = (card.category || '').toLowerCase().includes(q);
-      if (!matchExpr && !matchReading && !matchMeaning && !matchCategory) return false;
+      const matchConstruction = (card.construction || '').toLowerCase().includes(q);
+      const matchExamples = (card.examplesText || '').toLowerCase().includes(q);
+      if (!matchExpr && !matchReading && !matchMeaning && !matchCategory && !matchConstruction && !matchExamples) return false;
     }
 
     return true;
@@ -198,8 +200,8 @@ export const DeckOverviewModal: React.FC<DeckOverviewModalProps> = ({
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     {/* Expression Tile */}
-                    <div className="w-12 h-12 rounded-xl bg-[#F2EFE9] dark:bg-[#1E1B18] border border-[#DED7CD] dark:border-[#38312B] flex items-center justify-center font-jp text-lg font-bold text-[#2B2B2B] dark:text-[#E6E1DA] shrink-0 group-hover:border-[#6B7F5E]/60 transition-colors">
-                      {card.expression.slice(0, 2)}
+                    <div className="w-12 h-12 rounded-xl bg-[#F2EFE9] dark:bg-[#1E1B18] border border-[#DED7CD] dark:border-[#38312B] flex items-center justify-center font-jp text-base font-bold text-[#2B2B2B] dark:text-[#E6E1DA] shrink-0 group-hover:border-[#6B7F5E]/60 transition-colors px-1 text-center">
+                      {(card.expression.replace(/^[～~]/, '').slice(0, 2) || card.expression.slice(0, 2))}
                     </div>
 
                     <div className="min-w-0 flex-1">

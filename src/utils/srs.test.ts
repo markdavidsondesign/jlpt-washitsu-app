@@ -7,6 +7,12 @@ import {
   calculateSRSStats,
   initializeDefaultProgress,
 } from './srs.ts';
+import {
+  N4_GRAMMAR_VOCAB_DATA,
+  DECKS,
+  getDeckById,
+  getAvailableDecks,
+} from '../data/vocabFetcher.ts';
 
 test('calculateNextLevel handles all actions correctly', () => {
   // Again / Hard always drops to Level 1
@@ -34,19 +40,29 @@ test('getNextQueue handles "easy" by removing card from immediate queue', () => 
   assert.deepEqual(getNextQueue(['card-A'], 'card-A', 'easy'), []);
 });
 
-test('getNextQueue handles "again" by reappearing immediately in current deck session', () => {
-  // When multiple cards remain, re-inserts at index 1 (right after the very next card)
-  const queue = ['card-A', 'card-B', 'card-C', 'card-D'];
-  const next = getNextQueue(queue, 'card-A', 'again');
-  assert.deepEqual(next, ['card-B', 'card-A', 'card-C', 'card-D']);
+test('getNextQueue handles "again" with extended interleaving gap (Math.min(6, remaining.length))', () => {
+  // When 6 or more cards remain, places failed card at index 6 (ensuring at least 6 other cards are reviewed first)
+  const queueLong = ['failed-card', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8'];
+  const nextLong = getNextQueue(queueLong, 'failed-card', 'again');
+  assert.deepEqual(nextLong, ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'failed-card', 'c7', 'c8']);
 
-  // When only 1 card remains
-  const queue2 = ['card-A', 'card-B'];
-  assert.deepEqual(getNextQueue(queue2, 'card-A', 'again'), ['card-B', 'card-A']);
+  // When exactly 6 cards remain
+  const queueSix = ['failed-card', 'c1', 'c2', 'c3', 'c4', 'c5', 'c6'];
+  const nextSix = getNextQueue(queueSix, 'failed-card', 'again');
+  assert.deepEqual(nextSix, ['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'failed-card']);
+
+  // Fallback for short queues (< 6 remaining cards): place at the very end of remaining queue for maximum spacing
+  const queueShort = ['failed-card', 'card-B', 'card-C', 'card-D'];
+  const nextShort = getNextQueue(queueShort, 'failed-card', 'again');
+  assert.deepEqual(nextShort, ['card-B', 'card-C', 'card-D', 'failed-card']);
+
+  // When only 1 card remains in remaining queue
+  const queueTwo = ['failed-card', 'card-B'];
+  assert.deepEqual(getNextQueue(queueTwo, 'failed-card', 'again'), ['card-B', 'failed-card']);
 
   // When only this card is in queue
-  const queueSingle = ['card-A'];
-  assert.deepEqual(getNextQueue(queueSingle, 'card-A', 'again'), ['card-A']);
+  const queueSingle = ['failed-card'];
+  assert.deepEqual(getNextQueue(queueSingle, 'failed-card', 'again'), ['failed-card']);
 });
 
 test('getNextQueue handles "good" by reappearing after 3 other cards', () => {
@@ -735,5 +751,131 @@ test('Smart deck deduplication preserves distinct Transitive/Intransitive cards 
   assert.equal(intransCard?.id, 'jlpt_n4_開く_あく_intransitive');
 });
 
+test('Learn Mode batch completion: sole remaining card on Again stays in queue and batch completes only after Good or Easy', () => {
+  // Scenario 1: Exactly 1 card left in sessionQueue
+  const singleQueue = ['last-card'];
+  const nextQueueAgain = getNextQueue(singleQueue, 'last-card', 'again');
+  assert.deepEqual(nextQueueAgain, ['last-card'], 'Single card must remain as sole queue item on Again');
 
+  // Scenario 2: Swiping again repeatedly keeps the queue active
+  let queue = ['card-1', 'card-2'];
+  // Answer card-1 with good -> removed
+  queue = queue.filter((id) => id !== 'card-1');
+  assert.deepEqual(queue, ['card-2']);
+
+  // Answer card-2 with again -> remains ['card-2']
+  queue = getNextQueue(queue, 'card-2', 'again');
+  assert.deepEqual(queue, ['card-2']);
+
+  // Again once more -> still ['card-2']
+  queue = getNextQueue(queue, 'card-2', 'again');
+  assert.deepEqual(queue, ['card-2']);
+
+  // Batch completion flag: queue.length === 0
+  const isCompleteBeforeGood = queue.length === 0;
+  assert.equal(isCompleteBeforeGood, false, 'Batch must NOT complete while card is retried on Again');
+
+  // Finally answer card-2 with good
+  queue = queue.filter((id) => id !== 'card-2');
+  assert.deepEqual(queue, [], 'Queue is empty after Good');
+  const isCompleteAfterGood = queue.length === 0;
+  assert.equal(isCompleteAfterGood, true, 'Batch completes only when all cards receive Good or Easy');
+});
+
+test('25-card batch cycle simulation requires every single card to receive Good or Easy', () => {
+  const batchSize = 25;
+  const initialBatch = Array.from({ length: batchSize }, (_, i) => `card-${i + 1}`);
+  let currentQueue = [...initialBatch];
+  const masteredSet = new Set<string>();
+  const missedSet = new Set<string>();
+
+  // Simulate cards 1..24 answered with 'good'
+  for (let i = 0; i < 24; i++) {
+    const cardId = currentQueue[0];
+    masteredSet.add(cardId);
+    currentQueue = currentQueue.filter((id) => id !== cardId);
+  }
+
+  // Queue now only has the 25th card
+  assert.equal(currentQueue.length, 1);
+  assert.equal(currentQueue[0], 'card-25');
+  assert.equal(masteredSet.size, 24);
+
+  // User answers card-25 with 'again' 3 times in a row
+  for (let retry = 1; retry <= 3; retry++) {
+    const cardId = currentQueue[0];
+    missedSet.add(cardId);
+    currentQueue = getNextQueue(currentQueue, cardId, 'again');
+    assert.deepEqual(currentQueue, ['card-25'], `Queue must hold card-25 on retry #${retry}`);
+    assert.equal(currentQueue.length === 0, false, 'Batch must not complete during retry');
+  }
+
+  // User finally answers card-25 with 'easy'
+  const finalCardId = currentQueue[0];
+  masteredSet.add(finalCardId);
+  currentQueue = currentQueue.filter((id) => id !== finalCardId);
+
+  // Now the batch is truly complete
+  assert.equal(currentQueue.length, 0);
+  assert.equal(masteredSet.size, 25);
+  assert.equal(missedSet.has('card-25'), true);
+});
+
+test('JLPT N4 Grammar Patterns & Particles deck registration and card data integrity', () => {
+  // Total cards must be exactly 139
+  assert.equal(N4_GRAMMAR_VOCAB_DATA.length, 139);
+
+  // Check metadata registration
+  const grammarDeck = DECKS['n4_grammar'];
+  assert.ok(grammarDeck, 'n4_grammar must be registered in DECKS');
+  assert.equal(grammarDeck.metadata.name, 'JLPT N4 Grammar Patterns & Particles');
+  assert.equal(grammarDeck.metadata.level, 'N4');
+  assert.equal(grammarDeck.metadata.cardCount, 139);
+
+  // Check getDeckById
+  const retrieved = getDeckById('n4_grammar');
+  assert.equal(retrieved.length, 139);
+
+  // Verify getAvailableDecks contains n4_grammar
+  const available = getAvailableDecks();
+  assert.ok(available.some((d: any) => d.id === 'n4_grammar' && d.name === 'JLPT N4 Grammar Patterns & Particles'));
+
+  // First card: ～かた
+  const card1 = N4_GRAMMAR_VOCAB_DATA[0];
+  assert.equal(card1.expression, '～かた');
+  assert.equal(card1.meaning, 'way of doing [V.] / how to do [V.]');
+  assert.equal(card1.construction, 'Verb stem + かた');
+  assert.equal(card1.examplesText, '書き方 (how to write), 食べ方 (how to eat), し方 (how to do)');
+  assert.equal(card1.level, 'N4');
+  assert.equal(card1.deckId, 'n4_grammar');
+
+  // Second card: ～やすい
+  const card2 = N4_GRAMMAR_VOCAB_DATA[1];
+  assert.equal(card2.expression, '～やすい');
+  assert.equal(card2.meaning, 'easy to do [V.]');
+  assert.equal(card2.construction, 'Verb stem + やすい');
+  assert.ok(card2.examplesText?.includes('読みやすい'));
+
+  // Third card: ～にくい
+  const card3 = N4_GRAMMAR_VOCAB_DATA[2];
+  assert.equal(card3.expression, '～にくい');
+  assert.equal(card3.meaning, 'hard / difficult to do [V.]');
+  assert.equal(card3.construction, 'Verb stem + にくい');
+
+  // Verify all 139 cards have non-empty expression, meaning, and reading
+  for (const card of N4_GRAMMAR_VOCAB_DATA) {
+    assert.ok(card.expression.length > 0, `Expression must not be empty for card ${card.id}`);
+    assert.ok(card.meaning.length > 0, `Meaning must not be empty for card ${card.id}`);
+    assert.ok(card.reading.length > 0, `Reading must not be empty for card ${card.id}`);
+    assert.equal(card.deckId, 'n4_grammar');
+    assert.equal(card.level, 'N4');
+  }
+});
+
+test('cleanHiraganaForTTS cleans pattern strings with tildes (～ and ~)', () => {
+  assert.equal(cleanHiraganaForTTS('～かた'), 'かた');
+  assert.equal(cleanHiraganaForTTS('～やすい'), 'やすい');
+  assert.equal(cleanHiraganaForTTS('～にくい'), 'にくい');
+  assert.equal(cleanHiraganaForTTS('～れる／～られる'), 'れる');
+});
 

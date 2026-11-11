@@ -549,7 +549,9 @@ export function calculateNextLevel(currentLevel: SRSLevel, action: SRSAction): S
 
 /**
  * Re-queues the current card according to SRS intervals:
- * - Level 1 (Again/Hard): Reappears immediately (after 1 other card or at end if < 2 cards)
+ * - Level 1 (Again/Hard): Reappears spaced out in current batch.
+ *   Inserts at Math.min(6, remaining.length) ensuring at least 5-6 cards are reviewed
+ *   before it reappears, or at the very end of remaining queue if fewer than 6 cards remain.
  * - Level 2 (Good): Reappears after 3 other cards (or at end if <= 3 cards)
  * - Level 3 (Easy/Mastered): Removed from the immediate queue
  */
@@ -569,17 +571,20 @@ export function getNextQueue(
   }
 
   if (action === 'again') {
-    // Reappear immediately in current deck session:
-    // If there's 1 card left, place after it: [next, again]
-    // If there are 2 or more cards left, insert at index 1 so user recalls it very soon
+    // Reappear spaced out in current batch:
+    // If no remaining cards (sole card left in queue), keep as sole item
     if (remaining.length === 0) {
       return [currentCardId];
     }
-    if (remaining.length === 1) {
-      return [remaining[0], currentCardId];
-    }
-    // Reappear after 1 other card
-    return [remaining[0], currentCardId, ...remaining.slice(1)];
+    // If fewer than 6 cards remain in the batch, place at the very end (remaining.length)
+    // for maximum spacing. If 6 or more cards remain, insert at index 6 (Math.min(6, remaining.length)),
+    // ensuring at least 5-6 other cards are reviewed before it reappears.
+    const insertionIndex = Math.min(6, remaining.length);
+    return [
+      ...remaining.slice(0, insertionIndex),
+      currentCardId,
+      ...remaining.slice(insertionIndex),
+    ];
   }
 
   if (action === 'good') {
